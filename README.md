@@ -14,7 +14,9 @@ link per house, no accounts or emails.
   shares, adjustment (+/−) — cent-exact, remainders assigned to the payer first
 - Balances dashboard: net per member + simplified "who pays whom" with one-tap **Mark paid**
 - Activity feed (expenses + settlements), this-month spend total
-- Recurring templates table already in the schema (cron auto-posting = next milestone)
+- Recurring bills (M4): templates with any split method, daily cron auto-posting at
+  00:05 SGT via `/api/cron` (protected by `CRON_SECRET`), pause/resume, "Post now",
+  idempotent per month with catch-up for missed runs and short-month clamping
 
 ## Local dev
 

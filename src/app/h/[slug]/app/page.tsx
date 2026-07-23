@@ -148,6 +148,12 @@ export default async function Dashboard({ params }: { params: { slug: string } }
           <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-inkmuted">
             Activity
           </h2>
+          <Link
+            href={`/h/${params.slug}/app/recurring`}
+            className="text-sm text-accent underline-offset-2 hover:underline"
+          >
+            Recurring bills →
+          </Link>
         </div>
         {feed.length === 0 ? (
           <p className="mt-3 rounded-xl border border-dashed border-line p-6 text-center text-sm text-inkmuted">

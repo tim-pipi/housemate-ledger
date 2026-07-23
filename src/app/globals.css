@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-paper text-ink font-body antialiased;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.receipt-edge {
+  --notch: 10px;
+  -webkit-mask-image: radial-gradient(circle at 50% 100%, transparent 0, transparent 5px, black 6px);
+  -webkit-mask-size: var(--notch) 100%;
+  -webkit-mask-repeat: repeat-x;
+  mask-image: radial-gradient(circle at 50% 100%, transparent 0, transparent 5px, black 6px);
+  mask-size: var(--notch) 100%;
+  mask-repeat: repeat-x;
+}
+
+input, select, textarea {
+  @apply rounded-lg border border-line bg-white px-3 py-2 text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/20;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition-colors;
+}
+.btn-primary {
+  @apply btn bg-accent text-white hover:bg-accentdark;
+}
+.btn-ghost {
+  @apply btn border border-line bg-white text-ink hover:border-accent hover:text-accent;
+}
+.btn-danger {
+  @apply btn text-danger hover:bg-danger/10;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}

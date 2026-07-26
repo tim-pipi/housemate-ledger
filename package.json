@@ -10,6 +10,7 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.36.4",
     "jose": "^5.9.6",

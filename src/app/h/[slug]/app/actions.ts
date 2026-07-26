@@ -5,6 +5,12 @@ import { expenses, expenseShares, settlements } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { requireMember } from "@/lib/guard";
 import { resolveShares, type SplitConfig, type SplitMethod } from "@/lib/split";
+import {
+  notifyHouse,
+  renderExpenseMessage,
+  renderSettlementMessage,
+  describeSplit,
+} from "@/lib/telegram";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -130,6 +136,20 @@ export async function saveExpense(_prev: FormState, formData: FormData): Promise
             shareCents,
           }))
         );
+
+      const payer = houseMembers.find((m) => m.id === payerMemberId);
+      if (payer) {
+        await notifyHouse(
+          house.id,
+          renderExpenseMessage({
+            description,
+            amountCents,
+            category,
+            payerName: payer.username,
+            splitLabel: describeSplit(config),
+          })
+        );
+      }
     }
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
@@ -171,6 +191,14 @@ export async function settleUp(_prev: FormState, formData: FormData): Promise<Fo
       note,
       createdBy: me.id,
     });
+    const from = houseMembers.find((m) => m.id === fromMemberId);
+    const to = houseMembers.find((m) => m.id === toMemberId);
+    if (from && to) {
+      await notifyHouse(
+        house.id,
+        renderSettlementMessage({ fromName: from.username, toName: to.username, amountCents })
+      );
+    }
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Something went wrong." };
   }
@@ -180,7 +208,7 @@ export async function settleUp(_prev: FormState, formData: FormData): Promise<Fo
 
 export async function quickSettle(formData: FormData) {
   const slug = String(formData.get("slug"));
-  const { house, me } = await requireMember(slug);
+  const { house, me, houseMembers } = await requireMember(slug);
   const fromMemberId = Number(formData.get("from"));
   const toMemberId = Number(formData.get("to"));
   const amountCents = Number(formData.get("amountCents"));
@@ -194,6 +222,14 @@ export async function quickSettle(formData: FormData) {
       note: "Settled from balances",
       createdBy: me.id,
     });
+    const from = houseMembers.find((m) => m.id === fromMemberId);
+    const to = houseMembers.find((m) => m.id === toMemberId);
+    if (from && to) {
+      await notifyHouse(
+        house.id,
+        renderSettlementMessage({ fromName: from.username, toName: to.username, amountCents })
+      );
+    }
   }
   revalidatePath(`/h/${slug}/app`);
 }

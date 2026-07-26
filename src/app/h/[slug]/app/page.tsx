@@ -171,6 +171,12 @@ export default async function Dashboard({ params }: { params: { slug: string } }
             >
               Recurring bills →
             </Link>
+            <Link
+              href={`/h/${params.slug}/app/telegram`}
+              className="text-sm text-accent underline-offset-2 hover:underline"
+            >
+              Telegram →
+            </Link>
           </div>
         </div>
         {feed.length === 0 ? (

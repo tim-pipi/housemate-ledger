@@ -1,7 +1,8 @@
 import { db } from "@/db";
-import { expenses, expenseShares, recurringTemplates } from "@/db/schema";
+import { expenses, expenseShares, recurringTemplates, members } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { resolveShares, type SplitConfig } from "@/lib/split";
+import { notifyHouse, renderRecurringMessage } from "@/lib/telegram";
 
 // Current date parts in Singapore time, independent of server timezone.
 export function sgToday(): { year: number; month: number; day: number; ym: string } {
@@ -18,6 +19,15 @@ export function sgToday(): { year: number; month: number; day: number; ym: strin
 
 export function daysInMonth(year: number, month: number): number {
   return new Date(year, month, 0).getDate();
+}
+
+// Whether "today" in Singapore time is a Sunday — drives the weekly digest cadence.
+export function sgIsSunday(): boolean {
+  return (
+    new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Singapore", weekday: "short" }).format(
+      new Date()
+    ) === "Sun"
+  );
 }
 
 type Template = typeof recurringTemplates.$inferSelect;
@@ -54,6 +64,20 @@ export async function postTemplate(t: Template, ym: string, day: number) {
     .update(recurringTemplates)
     .set({ lastPostedMonth: ym })
     .where(eq(recurringTemplates.id, t.id));
+
+  const houseMembers = await db().query.members.findMany({ where: eq(members.houseId, t.houseId) });
+  const nameById = new Map(houseMembers.map((m) => [m.id, m.username]));
+  await notifyHouse(
+    t.houseId,
+    renderRecurringMessage({
+      description: t.description,
+      amountCents: t.amountCents,
+      shares: Object.entries(shares).map(([memberId, cents]) => ({
+        name: nameById.get(Number(memberId)) ?? "?",
+        cents,
+      })),
+    })
+  );
 }
 
 // Runs all due templates. A template is due when today (SGT) has reached its

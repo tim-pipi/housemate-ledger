@@ -33,12 +33,18 @@ A full PRD exists (v1.0, approved) — summary of its resolved decisions:
 - **Done:** M1 (house link + login/session), M2 (expense CRUD, all 5 split
   methods with live preview, balances + debt simplification), M3-partial
   (settle-up + activity feed shipped early because balances are useless without
-  them), M4 (recurring bills + cron auto-posting).
+  them), M4 (recurring bills + cron auto-posting), v1.1 Telegram integration
+  (see `docs/telegram.md` for the design doc — activity notifications, weekly
+  digest, `/link` `/unlink` `/balances` `/summary` webhook commands).
+  **Digest cadence decision:** weekly only, every Sunday evening SGT — the
+  doc offered a weekly+monthly-section option too, but that needed prior-month
+  aggregation the doc didn't fully specify, so the simpler fallback it
+  suggested was chosen instead. Every digest always shows month-to-date spend.
 - **Deployed and in use** on Vercel + Supabase by the owner.
 - **Not built yet (M5):** CSV export, monthly summary view, filters
-  (month/category/person). Also v1.1 ideas: receipt photo upload, Telegram
-  notifications, spend charts, saved split presets, link regeneration + house
-  password (the planned response if the house link ever leaks).
+  (month/category/person). Also v1.1 ideas still open: receipt photo upload,
+  spend charts, saved split presets, link regeneration + house password (the
+  planned response if the house link ever leaks).
 
 ## Stack & why
 
@@ -74,18 +80,29 @@ src/
   lib/balances.ts     computeNet() + simplify() (greedy debt simplification)
   lib/session.ts      create/get/clear signed session cookie
   lib/guard.ts        requireMember(slug) — auth gate for every app page/action
-  lib/recurring.ts    sgToday(), daysInMonth(), postTemplate(), runDueTemplates()
+  lib/recurring.ts    sgToday(), sgIsSunday(), daysInMonth(), postTemplate(), runDueTemplates()
+  lib/telegram.ts     sendMessage/notifyHouse/escapeHtml + message renderers (the only
+                      module that talks to the Telegram API)
+  lib/digest.ts       buildBalancesMessage/buildDigestMessage — shared by the weekly
+                      cron and the /balances,/summary webhook commands
   lib/constants.ts    categories, member color palette, fmtSGD()
   app/page.tsx        landing: create house
   app/actions.ts      createHouse (nanoid 12-char slug, ambiguous chars excluded)
   app/h/[slug]/       login page + loginOrJoin/logout actions
   app/h/[slug]/app/   dashboard (balances receipt, settle suggestions, feed)
     actions.ts        saveExpense / deleteExpense / settleUp / quickSettle
+                      (create-expense, settleUp, quickSettle also notifyHouse())
     expenses/         expense-form.tsx (client, live preview) + new/edit pages
     recurring/        template list/new/edit + saveTemplate/deleteTemplate/postNow
+                      (postTemplate in lib/recurring.ts also notifyHouse())
+    telegram/         link/unlink UI — generateLinkCode/disconnectTelegram actions
   app/api/cron/       GET, Bearer CRON_SECRET, calls runDueTemplates()
+  app/api/digest/     GET, Bearer CRON_SECRET, weekly (Sunday SGT) digest per linked house
+  app/api/telegram/   POST webhook, verifies X-Telegram-Bot-Api-Secret-Token, handles
+                      /link /unlink /balances /summary
+docs/telegram.md      Telegram integration design doc (decisions + rationale)
 drizzle/              generated SQL migrations (drizzle-kit generate)
-vercel.json           cron: "5 16 * * *" UTC = 00:05 SGT daily
+vercel.json           crons: "5 16 * * *" (00:05 SGT, bills) and "0 11 * * *" (19:00 SGT, digest)
 ```
 
 ## Invariants — do not break these
@@ -157,7 +174,13 @@ Env vars (`.env.example` documents them):
   pgBouncer transaction pooling + serverless. Keep those options.
 - `SESSION_SECRET` — signs session JWTs.
 - `CRON_SECRET` — Vercel sends `Authorization: Bearer <CRON_SECRET>` to
-  `/api/cron` automatically when the env var exists.
+  `/api/cron` and `/api/digest` automatically when the env var exists.
+- `TELEGRAM_BOT_TOKEN` — from @BotFather; `lib/telegram.ts` no-ops (never
+  throws) if unset, so the app works fully without it.
+- `TELEGRAM_WEBHOOK_SECRET` — verified against the
+  `X-Telegram-Bot-Api-Secret-Token` header on every `/api/telegram` request;
+  set as the `secret_token` param when calling Telegram's `setWebhook`.
+- `APP_URL` — used to build the "settle up" link in digest messages.
 
 Schema change workflow: edit `schema.ts` → `npm run db:generate` → commit the
 new file in `drizzle/` → run `db:migrate` against prod → deploy.
@@ -182,9 +205,9 @@ new file in `drizzle/` → run `db:migrate` against prod → deploy.
 
 1. **M5:** monthly summary (total + by category + per person), filters
    (month/category/person) on the feed, CSV export of any filtered view.
-2. **v1.1 candidates (unprioritized):** Telegram notifications, receipt photo
-   upload, spend charts, saved split presets, house-link regeneration + optional
-   house password.
+2. **v1.1 candidates remaining (unprioritized):** receipt photo upload, spend
+   charts, saved split presets, house-link regeneration + optional house
+   password. (Telegram notifications shipped — see Status above.)
 
 When in doubt about product direction: optimize for the 4-person trusted
 household, zero friction, and auditability — in that order.

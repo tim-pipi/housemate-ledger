@@ -14,6 +14,9 @@ export const houses = pgTable("houses", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   currency: text("currency").notNull().default("SGD"),
+  telegramChatId: text("telegram_chat_id"),
+  telegramLinkCode: text("telegram_link_code"),
+  lastDigestDate: text("last_digest_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

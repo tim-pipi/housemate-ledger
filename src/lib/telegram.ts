@@ -31,7 +31,7 @@ export async function sendMessage(chatId: string, html: string): Promise<void> {
   }
 }
 
-function appLink(slug: string): string {
+export function appLink(slug: string): string {
   const appUrl = process.env.APP_URL;
   return appUrl ? `${appUrl}/h/${slug}/app` : `/h/${slug}/app`;
 }

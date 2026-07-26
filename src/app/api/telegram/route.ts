@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { houses } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { sendMessage, escapeHtml } from "@/lib/telegram";
+import { sendMessage, escapeHtml, appLink } from "@/lib/telegram";
 import { buildBalancesMessage, buildDigestMessage } from "@/lib/digest";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       .where(eq(houses.id, house.id));
     await sendMessage(
       chatId,
-      `✅ Linked to <b>${escapeHtml(house.name)}</b>. This group will now get expense and settlement updates.`
+      `✅ Linked to <b>${escapeHtml(house.name)}</b>. This group will now get expense and settlement updates.\n\nApp: ${appLink(house.slug)}`
     );
     return NextResponse.json({ ok: true });
   }
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
     const html =
-      command === "/balances" ? await buildBalancesMessage(house.id) : await buildDigestMessage(house);
+      command === "/balances" ? await buildBalancesMessage(house) : await buildDigestMessage(house);
     await sendMessage(chatId, html);
     return NextResponse.json({ ok: true });
   }

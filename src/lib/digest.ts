@@ -3,7 +3,7 @@ import { expenses, expenseShares, settlements, members } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { computeNet, simplify, type Transfer } from "@/lib/balances";
 import { fmtSGD } from "@/lib/constants";
-import { escapeHtml } from "@/lib/telegram";
+import { escapeHtml, appLink } from "@/lib/telegram";
 import { sgToday } from "@/lib/recurring";
 
 async function loadHouseData(houseId: number) {
@@ -38,14 +38,16 @@ function renderOutstanding(transfers: Transfer[], byId: Map<number, string>): st
     .join("\n");
 }
 
-export async function buildBalancesMessage(houseId: number): Promise<string> {
-  const { exp, sharesByExpense, setl, byId } = await loadHouseData(houseId);
+export async function buildBalancesMessage(house: { id: number; slug: string }): Promise<string> {
+  const { exp, sharesByExpense, setl, byId } = await loadHouseData(house.id);
   const net = computeNet(
     exp.map((e) => ({ payerMemberId: e.payerMemberId, shares: sharesByExpense.get(e.id) ?? [] })),
     setl
   );
   const transfers = simplify(net);
-  return `<b>Balances</b>\n${renderOutstanding(transfers, byId)}`;
+  return [`<b>Balances</b>`, renderOutstanding(transfers, byId), "", `App: ${appLink(house.slug)}`].join(
+    "\n"
+  );
 }
 
 export async function buildDigestMessage(house: {
@@ -63,8 +65,6 @@ export async function buildDigestMessage(house: {
     setl
   );
   const transfers = simplify(net);
-  const appUrl = process.env.APP_URL;
-  const link = appUrl ? `${appUrl}/h/${house.slug}/app` : `/h/${house.slug}/app`;
 
   return [
     `📒 <b>${escapeHtml(house.name)} — weekly digest</b>`,
@@ -73,6 +73,6 @@ export async function buildDigestMessage(house: {
     "Outstanding:",
     renderOutstanding(transfers, byId),
     "",
-    `Settle up: ${link}`,
+    `Settle up: ${appLink(house.slug)}`,
   ].join("\n");
 }

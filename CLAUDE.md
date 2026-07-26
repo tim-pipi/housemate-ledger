@@ -1,0 +1,190 @@
+# CLAUDE.md — Housemate Ledger
+
+Context handoff for Claude Code. This file captures what the project is, every
+decision made so far, and — most importantly — *why*, so you can extend the code
+without re-litigating settled questions or breaking invariants.
+
+## What this is
+
+A private web app for one household (4 housemates in a shared HDB flat in
+Singapore) to track shared expenses, split bills Splitwise-style, and settle up.
+The owner (Tim) is a software engineer; treat him as a technical peer.
+
+**Access model is the defining product choice:** it works like when2meet. A house
+lives at an unguessable URL (`/h/<12-char-slug>`); anyone who opens the link
+types a username (optionally sets a password to lock that name) and is in. No
+emails, no signup, no OAuth. This was chosen deliberately over account-based
+auth to remove all onboarding friction for a small trusted group.
+
+A full PRD exists (v1.0, approved) — summary of its resolved decisions:
+
+| Decision | Choice | Why |
+|---|---|---|
+| Rent split | Adjustment (equal base + fixed S$ top-ups per room) | Rooms differ in size; owner picked adjustment over shares |
+| House access | Unguessable link only, no house password | Trusted household; friction beats marginal security here |
+| Recurring bills | Auto-post on schedule (no confirm step), editable after | Zero-touch rent; variable utilities get edited after the real bill arrives |
+| Edit permissions | Any member can edit/delete any expense | Full-trust household; change trail (created_by / updated_by) kept for transparency |
+| Notifications | None in v1 (Telegram deferred to v1.1) | Scope control |
+| Currency | SGD only | Single household in Singapore |
+| Money movement | Out of scope — app records settlements, PayNow happens outside | Recording ≠ executing; keeps app trivial and safe |
+
+## Status
+
+- **Done:** M1 (house link + login/session), M2 (expense CRUD, all 5 split
+  methods with live preview, balances + debt simplification), M3-partial
+  (settle-up + activity feed shipped early because balances are useless without
+  them), M4 (recurring bills + cron auto-posting).
+- **Deployed and in use** on Vercel + Supabase by the owner.
+- **Not built yet (M5):** CSV export, monthly summary view, filters
+  (month/category/person). Also v1.1 ideas: receipt photo upload, Telegram
+  notifications, spend charts, saved split presets, link regeneration + house
+  password (the planned response if the house link ever leaks).
+
+## Stack & why
+
+- **Next.js 14 App Router + TypeScript**, server actions for all mutations (no
+  separate API layer to maintain; forms work without client JS where possible).
+- **Tailwind CSS**, hand-rolled components — shadcn/ui was considered and
+  skipped to keep the dependency surface tiny for an app this size.
+- **Drizzle ORM + `postgres` driver** against **Supabase Postgres (free tier)**.
+- **Supabase is used ONLY as a Postgres host.** Supabase Auth and RLS are
+  deliberately unused — the when2meet access model doesn't fit email-based auth
+  providers. Do not "improve" this by adding Supabase Auth; it would break the
+  core product decision. All access control is app-level, scoped by the
+  session's houseId in server actions/guards.
+- **Custom sessions:** `jose`-signed JWT in an httpOnly cookie (`hf_session`),
+  90-day expiry. `bcryptjs` for optional per-member passwords. `SESSION_SECRET`
+  env var signs cookies.
+- **Vercel Hobby** hosting; **Vercel Cron** (daily) for recurring bills. Hobby
+  plan allows daily crons — that constraint shaped the design (one daily
+  catch-up run rather than precise per-template scheduling).
+- Fonts (Space Grotesk display / Inter body) load via a Google Fonts `<link>`
+  in `layout.tsx`, NOT `next/font` — next/font downloads at build time, which
+  fails in sandboxed/offline builds. A build-time warning about
+  fonts.googleapis.com minification is harmless; browsers load fonts at runtime.
+
+## Code map
+
+```
+src/
+  db/schema.ts        houses, members, expenses, expense_shares,
+                      settlements, recurring_templates
+  db/index.ts         lazy db() singleton — see "Invariants"
+  lib/split.ts        SplitConfig type + resolveShares() — the money math
+  lib/balances.ts     computeNet() + simplify() (greedy debt simplification)
+  lib/session.ts      create/get/clear signed session cookie
+  lib/guard.ts        requireMember(slug) — auth gate for every app page/action
+  lib/recurring.ts    sgToday(), daysInMonth(), postTemplate(), runDueTemplates()
+  lib/constants.ts    categories, member color palette, fmtSGD()
+  app/page.tsx        landing: create house
+  app/actions.ts      createHouse (nanoid 12-char slug, ambiguous chars excluded)
+  app/h/[slug]/       login page + loginOrJoin/logout actions
+  app/h/[slug]/app/   dashboard (balances receipt, settle suggestions, feed)
+    actions.ts        saveExpense / deleteExpense / settleUp / quickSettle
+    expenses/         expense-form.tsx (client, live preview) + new/edit pages
+    recurring/        template list/new/edit + saveTemplate/deleteTemplate/postNow
+  app/api/cron/       GET, Bearer CRON_SECRET, calls runDueTemplates()
+drizzle/              generated SQL migrations (drizzle-kit generate)
+vercel.json           cron: "5 16 * * *" UTC = 00:05 SGT daily
+```
+
+## Invariants — do not break these
+
+1. **All money is integer cents.** Dollars exist only at the UI edge
+   (input parsing multiplies by 100 and rounds; display divides by 100).
+   Never store or compute balances in floats.
+2. **`expense_shares` always stores final resolved per-person cents**, whatever
+   the split method. Balance math (`computeNet`) only ever reads shares — it is
+   method-agnostic. `split_method` + `split_config` (jsonb) are stored purely so
+   the edit form can reconstruct the user's original inputs. If you add a split
+   method, extend `SplitConfig`/`resolveShares`, and the rest of the app needs
+   no changes.
+3. **Shares must sum exactly to the expense total.** `resolveShares` uses
+   largest-remainder rounding; leftover cents go to the payer first, then lowest
+   member id. This determinism is intentional (same input → same split). Keep it.
+4. **Balances are derived, never stored.** Net = (paid on others' behalf) −
+   (own shares) − (settlements made) + (settlements received). No running-total
+   column anywhere; this makes edits/deletes of history trivially safe.
+5. **`db()` is a lazy singleton** (`src/db/index.ts`) and every DB-touching page
+   exports `dynamic = "force-dynamic"`. This is what lets `next build` succeed
+   with no DATABASE_URL (CI, sandboxes). Don't hoist a top-level db connection
+   or remove force-dynamic without understanding this.
+6. **Every server action re-authorizes.** First line is effectively
+   `requireMember(slug)`, and every query filters by `houseId` from the session
+   — never trust ids from the form alone. The unguessable link is the only
+   perimeter, so this per-action scoping is the entire security model.
+7. **Cron is idempotent per month** via `recurring_templates.last_posted_month`
+   ("YYYY-MM"). A template posts when SGT day-of-month ≥ its (clamped) day and
+   it hasn't posted this month. Late/missed runs self-heal on the next run.
+   Day-31 templates post on the last day of short months (`min(day, daysInMonth)`).
+8. **All date logic for posting uses Asia/Singapore** (`sgToday()` via Intl),
+   never server-local time — Vercel runs UTC.
+9. **Split validation happens at template save time too** (`saveTemplate` calls
+   `resolveShares` and discards the result) so a bad template fails loudly in
+   the UI, not silently at 00:05 on the 1st.
+
+## Conventions
+
+- Mutations = server actions with `useFormState` for error display; errors are
+  returned as `{ error: string }`, thrown inside a try/catch — user-facing
+  message strings, not stack traces.
+- Auth-gated pages call `requireMember(params.slug)` first; it redirects to the
+  house login on any mismatch.
+- `revalidatePath` after every mutation touching dashboard data.
+- UI tokens live in `tailwind.config.ts` (paper/ink/accent teal palette) —
+  reuse them; don't introduce ad-hoc hex values. `.tnum` class for any number
+  column (tabular numerals). `fmtSGD()` for all money display.
+- `expense-form.tsx` and `recurring-form.tsx` are near-duplicates by choice —
+  they were kept separate rather than abstracted because their divergence
+  (date vs day-of-month, active flag, delete semantics) made a shared component
+  more complex than two files. Feel free to unify only if it genuinely reduces
+  code.
+- Member colors assigned round-robin from `MEMBER_COLORS` at join time.
+
+## Commands & environment
+
+```bash
+npm run dev           # local dev
+npm run build         # must pass with no DATABASE_URL set (only SESSION_SECRET)
+npm run db:generate   # regenerate SQL after editing src/db/schema.ts
+npm run db:migrate    # apply migrations (needs DATABASE_URL)
+npx tsx <file>        # tsx is a devDependency; used for quick logic testing
+```
+
+Env vars (`.env.example` documents them):
+- `DATABASE_URL` — Supabase **transaction pooler** string (port 6543); the
+  postgres client uses `prepare: false, max: 1` specifically because of
+  pgBouncer transaction pooling + serverless. Keep those options.
+- `SESSION_SECRET` — signs session JWTs.
+- `CRON_SECRET` — Vercel sends `Authorization: Bearer <CRON_SECRET>` to
+  `/api/cron` automatically when the env var exists.
+
+Schema change workflow: edit `schema.ts` → `npm run db:generate` → commit the
+new file in `drizzle/` → run `db:migrate` against prod → deploy.
+
+## Known quirks / gotchas
+
+- Supabase free tier pauses after ~1 week idle; first request after resumes it
+  (slow first load). Owner knows and accepted this.
+- The cron schedule in `vercel.json` only activates on a production deploy.
+- `members` are never deletable in the current UI — several FKs
+  (payer, created_by, shares) reference them. If you add member removal,
+  soft-delete (add an `active` flag) rather than hard delete.
+- No tests are wired into CI yet; split/balance math was verified with ad-hoc
+  tsx scripts. **Good first task: turn those into real vitest tests for
+  `lib/split.ts`, `lib/balances.ts`, `lib/recurring.ts`** — they're pure
+  functions and the highest-stakes code in the app.
+- `quickSettle` (the "Mark paid" button) records settlement dated today with a
+  fixed note; the fuller `settleUp` action exists for arbitrary settlements but
+  has no dedicated UI yet — dashboard suggestions cover the common case.
+
+## Roadmap (agreed with owner)
+
+1. **M5:** monthly summary (total + by category + per person), filters
+   (month/category/person) on the feed, CSV export of any filtered view.
+2. **v1.1 candidates (unprioritized):** Telegram notifications, receipt photo
+   upload, spend charts, saved split presets, house-link regeneration + optional
+   house password.
+
+When in doubt about product direction: optimize for the 4-person trusted
+household, zero friction, and auditability — in that order.

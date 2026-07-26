@@ -8,6 +8,7 @@ import { resolveShares, type SplitConfig, type SplitMethod } from "@/lib/split";
 import {
   notifyHouse,
   renderExpenseMessage,
+  renderExpenseDeletedMessage,
   renderSettlementMessage,
   describeSplit,
 } from "@/lib/telegram";
@@ -112,6 +113,26 @@ export async function saveExpense(_prev: FormState, formData: FormData): Promise
             shareCents,
           }))
         );
+
+      const editPayer = houseMembers.find((m) => m.id === payerMemberId);
+      if (editPayer) {
+        await notifyHouse(
+          house.id,
+          renderExpenseMessage({
+            description,
+            amountCents,
+            category,
+            payerName: editPayer.username,
+            splitLabel: describeSplit(config),
+            shares: Object.entries(shares).map(([memberId, cents]) => ({
+              name: houseMembers.find((m) => m.id === Number(memberId))?.username ?? "?",
+              cents,
+            })),
+            emoji: "✏️",
+            suffix: "(edited)",
+          })
+        );
+      }
     } else {
       const [row] = await db()
         .insert(expenses)
@@ -147,6 +168,10 @@ export async function saveExpense(_prev: FormState, formData: FormData): Promise
             category,
             payerName: payer.username,
             splitLabel: describeSplit(config),
+            shares: Object.entries(shares).map(([memberId, cents]) => ({
+              name: houseMembers.find((m) => m.id === Number(memberId))?.username ?? "?",
+              cents,
+            })),
           })
         );
       }
@@ -162,9 +187,21 @@ export async function deleteExpense(formData: FormData) {
   const slug = String(formData.get("slug"));
   const { house } = await requireMember(slug);
   const id = Number(formData.get("expenseId"));
+  const existing = await db().query.expenses.findFirst({
+    where: and(eq(expenses.id, id), eq(expenses.houseId, house.id)),
+  });
   await db()
     .delete(expenses)
     .where(and(eq(expenses.id, id), eq(expenses.houseId, house.id)));
+  if (existing) {
+    await notifyHouse(
+      house.id,
+      renderExpenseDeletedMessage({
+        description: existing.description,
+        amountCents: existing.amountCents,
+      })
+    );
+  }
   revalidatePath(`/h/${slug}/app`);
   redirect(`/h/${slug}/app`);
 }

@@ -64,11 +64,25 @@ export function renderExpenseMessage(opts: {
   category: string;
   payerName: string;
   splitLabel: string;
+  shares: { name: string; cents: number }[];
+  emoji?: string;
+  suffix?: string;
 }): string {
+  const emoji = opts.emoji ?? "🧾";
+  const suffix = opts.suffix ? ` ${opts.suffix}` : "";
+  const breakdown = opts.shares.map((s) => `${escapeHtml(s.name)} owes ${fmtSGD(s.cents)}`).join(" · ");
   return (
-    `🧾 <b>${escapeHtml(opts.description)}</b> — ${fmtSGD(opts.amountCents)}\n` +
-    `Paid by ${escapeHtml(opts.payerName)} · ${escapeHtml(opts.category)} · ${escapeHtml(opts.splitLabel)}`
+    `${emoji} <b>${escapeHtml(opts.description)}</b> — ${fmtSGD(opts.amountCents)}${suffix}\n` +
+    `Paid by ${escapeHtml(opts.payerName)} · ${escapeHtml(opts.category)} · ${escapeHtml(opts.splitLabel)}\n` +
+    breakdown
   );
+}
+
+export function renderExpenseDeletedMessage(opts: {
+  description: string;
+  amountCents: number;
+}): string {
+  return `🗑️ <b>${escapeHtml(opts.description)}</b> — ${fmtSGD(opts.amountCents)} deleted`;
 }
 
 export function renderSettlementMessage(opts: {

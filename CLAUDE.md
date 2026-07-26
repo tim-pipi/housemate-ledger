@@ -40,6 +40,13 @@ A full PRD exists (v1.0, approved) — summary of its resolved decisions:
   doc offered a weekly+monthly-section option too, but that needed prior-month
   aggregation the doc didn't fully specify, so the simpler fallback it
   suggested was chosen instead. Every digest always shows month-to-date spend.
+  **Edit/delete notifications:** the doc's original call was expense created +
+  settlement only, deliberately excluding edits/deletes as noise — but it
+  flagged "revisit only if the house asks," and the owner asked, so
+  `saveExpense`'s edit branch and `deleteExpense` now also `notifyHouse()`
+  (✏️/🗑️ prefixed). Every expense notification (create/edit) includes a
+  per-person "X owes $Y" breakdown, not just the payer/category/split-method
+  line the doc sketched.
 - **Deployed and in use** on Vercel + Supabase by the owner.
 - **Not built yet (M5):** CSV export, monthly summary view, filters
   (month/category/person). Also v1.1 ideas still open: receipt photo upload,

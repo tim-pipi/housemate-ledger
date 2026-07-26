@@ -31,11 +31,16 @@ export async function sendMessage(chatId: string, html: string): Promise<void> {
   }
 }
 
+function appLink(slug: string): string {
+  const appUrl = process.env.APP_URL;
+  return appUrl ? `${appUrl}/h/${slug}/app` : `/h/${slug}/app`;
+}
+
 // The only function the rest of the app should call to notify a house's group.
 export async function notifyHouse(houseId: number, html: string): Promise<void> {
   const house = await db().query.houses.findFirst({ where: eq(houses.id, houseId) });
   if (!house?.telegramChatId) return;
-  await sendMessage(house.telegramChatId, html);
+  await sendMessage(house.telegramChatId, `${html}\n\nCheck the activity: ${appLink(house.slug)}`);
 }
 
 export function describeSplit(config: SplitConfig): string {

@@ -15,7 +15,9 @@ export default async function NewExpense({ params }: { params: { slug: string } 
       <ExpenseForm
         slug={params.slug}
         meId={me.id}
-        members={houseMembers.map((m) => ({ id: m.id, username: m.username, color: m.color }))}
+        members={houseMembers
+          .filter((m) => m.active)
+          .map((m) => ({ id: m.id, username: m.username, color: m.color }))}
       />
     </main>
   );

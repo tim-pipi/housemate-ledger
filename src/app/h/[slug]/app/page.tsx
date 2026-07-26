@@ -88,26 +88,36 @@ export default async function Dashboard({ params }: { params: { slug: string } }
           </p>
         </div>
         <ul className="mt-2 divide-y divide-line px-5">
-          {houseMembers.map((m) => {
-            const v = net[m.id] ?? 0;
-            return (
-              <li key={m.id} className="flex items-center justify-between py-2.5">
-                <span className="flex items-center gap-2 font-medium">
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: m.color }} />
-                  {m.username}
-                  {m.id === me.id && <span className="text-xs text-inkmuted">(you)</span>}
-                </span>
-                <span
-                  className={`tnum font-display font-semibold ${
-                    v > 0 ? "text-accentdark" : v < 0 ? "text-danger" : "text-inkmuted"
-                  }`}
-                >
-                  {v > 0 ? "+" : ""}
-                  {fmtSGD(v)}
-                </span>
-              </li>
-            );
-          })}
+          {houseMembers
+            .filter((m) => m.active || (net[m.id] ?? 0) !== 0)
+            .map((m) => {
+              const v = net[m.id] ?? 0;
+              return (
+                <li key={m.id} className="flex items-center justify-between py-2.5">
+                  <span className="flex items-center gap-2 font-medium">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ background: m.color, opacity: m.active ? 1 : 0.5 }}
+                    />
+                    <span style={{ opacity: m.active ? 1 : 0.6 }}>{m.username}</span>
+                    {m.id === me.id && <span className="text-xs text-inkmuted">(you)</span>}
+                    {!m.active && (
+                      <span className="rounded bg-line px-1.5 py-0.5 text-xs text-inkmuted">
+                        inactive
+                      </span>
+                    )}
+                  </span>
+                  <span
+                    className={`tnum font-display font-semibold ${
+                      v > 0 ? "text-accentdark" : v < 0 ? "text-danger" : "text-inkmuted"
+                    }`}
+                  >
+                    {v > 0 ? "+" : ""}
+                    {fmtSGD(v)}
+                  </span>
+                </li>
+              );
+            })}
         </ul>
         <div className="receipt-edge h-3 w-full bg-white" />
       </section>
@@ -148,12 +158,20 @@ export default async function Dashboard({ params }: { params: { slug: string } }
           <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-inkmuted">
             Activity
           </h2>
-          <Link
-            href={`/h/${params.slug}/app/recurring`}
-            className="text-sm text-accent underline-offset-2 hover:underline"
-          >
-            Recurring bills →
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href={`/h/${params.slug}/app/members`}
+              className="text-sm text-accent underline-offset-2 hover:underline"
+            >
+              Members →
+            </Link>
+            <Link
+              href={`/h/${params.slug}/app/recurring`}
+              className="text-sm text-accent underline-offset-2 hover:underline"
+            >
+              Recurring bills →
+            </Link>
+          </div>
         </div>
         {feed.length === 0 ? (
           <p className="mt-3 rounded-xl border border-dashed border-line p-6 text-center text-sm text-inkmuted">

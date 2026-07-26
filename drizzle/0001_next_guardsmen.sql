@@ -1,0 +1,1 @@
+ALTER TABLE "members" ADD COLUMN "active" integer DEFAULT 1 NOT NULL;

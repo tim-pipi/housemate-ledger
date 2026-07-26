@@ -27,6 +27,7 @@ export const members = pgTable(
     username: text("username").notNull(),
     passwordHash: text("password_hash"),
     color: text("color").notNull(),
+    active: integer("active").notNull().default(1),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (t) => [uniqueIndex("members_house_username").on(t.houseId, t.username)]

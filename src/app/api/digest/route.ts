@@ -5,6 +5,7 @@ import { eq, isNotNull } from "drizzle-orm";
 import { sgToday, sgIsSunday } from "@/lib/recurring";
 import { sendMessage } from "@/lib/telegram";
 import { buildDigestMessage } from "@/lib/digest";
+import { runEventScan } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,11 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (!sgIsSunday()) return NextResponse.json({ sent: 0, reason: "not-sunday" });
+  // Runs every day this route fires (not just Sundays) — reminders and
+  // next_date roll-over are daily concerns, the digest send below is weekly.
+  const events = await runEventScan();
+
+  if (!sgIsSunday()) return NextResponse.json({ sent: 0, reason: "not-sunday", events });
 
   const { ym, day } = sgToday();
   const today = `${ym}-${String(day).padStart(2, "0")}`;
@@ -28,5 +33,5 @@ export async function GET(req: NextRequest) {
     await db().update(houses).set({ lastDigestDate: today }).where(eq(houses.id, house.id));
     sent++;
   }
-  return NextResponse.json({ sent });
+  return NextResponse.json({ sent, events });
 }

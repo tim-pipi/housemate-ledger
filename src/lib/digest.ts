@@ -1,10 +1,11 @@
 import { db } from "@/db";
-import { expenses, expenseShares, settlements, members, shoppingItems } from "@/db/schema";
+import { expenses, expenseShares, settlements, members, shoppingItems, houseEvents } from "@/db/schema";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { computeNet, simplify, type Transfer } from "@/lib/balances";
 import { fmtSGD } from "@/lib/constants";
 import { escapeHtml, appLink } from "@/lib/telegram";
 import { sgToday } from "@/lib/recurring";
+import { formatEventDate } from "@/lib/events";
 
 async function loadHouseData(houseId: number) {
   const houseMembers = await db().query.members.findMany({ where: eq(members.houseId, houseId) });
@@ -87,6 +88,20 @@ export async function buildDigestMessage(house: {
       "",
       `🛒 Shopping (${openItems.length} needed):`,
       openItems.map((i) => escapeHtml(i.name)).join(", ")
+    );
+  }
+
+  const upcoming = await db().query.houseEvents.findMany({
+    where: and(eq(houseEvents.houseId, house.id), eq(houseEvents.active, 1)),
+    orderBy: (t, { asc }) => [asc(t.nextDate)],
+    limit: 3,
+  });
+
+  if (upcoming.length > 0) {
+    lines.push(
+      "",
+      `📅 Upcoming:`,
+      upcoming.map((e) => `${escapeHtml(e.title)} (${formatEventDate(e.nextDate)})`).join(", ")
     );
   }
 

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { expenses, expenseShares, settlements, shoppingItems } from "@/db/schema";
+import { expenses, expenseShares, settlements, shoppingItems, houseEvents } from "@/db/schema";
 import { and, eq, desc, inArray, isNull } from "drizzle-orm";
 import { requireMember } from "@/lib/guard";
 import { computeNet, simplify } from "@/lib/balances";
 import { fmtSGD } from "@/lib/constants";
+import { formatEventDate } from "@/lib/events";
 import { logout } from "../actions";
 import { quickSettle } from "./actions";
 
@@ -41,6 +42,12 @@ export default async function Dashboard({ params }: { params: { slug: string } }
       isNull(shoppingItems.archivedAt)
     ),
     columns: { id: true },
+  });
+
+  const upcomingEvents = await db().query.houseEvents.findMany({
+    where: and(eq(houseEvents.houseId, house.id), eq(houseEvents.active, 1)),
+    orderBy: (t, { asc }) => [asc(t.nextDate)],
+    limit: 3,
   });
 
   const net = computeNet(
@@ -161,6 +168,31 @@ export default async function Dashboard({ params }: { params: { slug: string } }
         </section>
       )}
 
+      {/* Upcoming events */}
+      {upcomingEvents.length > 0 && (
+        <section className="mt-4 rounded-xl border border-line p-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-inkmuted">
+              Upcoming
+            </h2>
+            <Link
+              href={`/h/${params.slug}/app/events`}
+              className="text-xs text-accent underline-offset-2 hover:underline"
+            >
+              Calendar →
+            </Link>
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {upcomingEvents.map((e) => (
+              <li key={e.id} className="flex items-center justify-between text-sm">
+                <span>{e.title}</span>
+                <span className="tnum text-inkmuted">{formatEventDate(e.nextDate)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Activity */}
       <section className="mt-6">
         <div className="flex items-center justify-between">
@@ -185,6 +217,12 @@ export default async function Dashboard({ params }: { params: { slug: string } }
               className="text-sm text-accent underline-offset-2 hover:underline"
             >
               Recurring bills →
+            </Link>
+            <Link
+              href={`/h/${params.slug}/app/events`}
+              className="text-sm text-accent underline-offset-2 hover:underline"
+            >
+              Calendar →
             </Link>
             <Link
               href={`/h/${params.slug}/app/telegram`}

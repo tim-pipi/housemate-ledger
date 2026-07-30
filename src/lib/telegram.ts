@@ -109,6 +109,30 @@ export function renderShoppingBoughtMessage(opts: {
   return `✅ ${escapeHtml(opts.boughtByName)} bought <b>${escapeHtml(opts.name)}</b> — no need to buy it`;
 }
 
+// Takes plain labels rather than a Recurrence object so this module never
+// needs to import from lib/events.ts (which imports notifyHouse from here).
+export function renderEventCreatedMessage(opts: {
+  title: string;
+  dateLabel: string;
+  createdByName: string;
+}): string {
+  return `📅 ${escapeHtml(opts.createdByName)} added <b>${escapeHtml(opts.title)}</b> — ${escapeHtml(
+    opts.dateLabel
+  )}`;
+}
+
+export function renderEventReminderMessage(opts: {
+  title: string;
+  note: string | null;
+  recurrenceLabel: string | null; // null for one-off events
+  when: "tomorrow" | "today";
+}): string {
+  const label = opts.when === "tomorrow" ? "Tomorrow" : "Today";
+  const noteText = opts.note ? ` (${escapeHtml(opts.note)})` : "";
+  const recurText = opts.recurrenceLabel ? ` — ${escapeHtml(opts.recurrenceLabel)}` : "";
+  return `⏰ ${label}: <b>${escapeHtml(opts.title)}</b>${noteText}${recurText}`;
+}
+
 export function renderRecurringMessage(opts: {
   description: string;
   amountCents: number;

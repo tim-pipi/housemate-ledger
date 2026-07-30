@@ -112,6 +112,28 @@ export const shoppingItems = pgTable("shopping_items", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// House calendar / reminders — deliberately separate from recurring_templates.
+// recurring_templates auto-posts the rent EXPENSE (ledger entry); house_events
+// reminds about doing things in the real world (paying the landlord, booking
+// servicing). Different lifecycles, different failure impact — do not merge.
+export const houseEvents = pgTable("house_events", {
+  id: serial("id").primaryKey(),
+  houseId: integer("house_id")
+    .notNull()
+    .references(() => houses.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  note: text("note"),
+  nextDate: date("next_date").notNull(),
+  recurrence: jsonb("recurrence").notNull(), // see Recurrence type in lib/events.ts
+  remindDaysBefore: integer("remind_days_before").notNull().default(1),
+  active: integer("active").notNull().default(1),
+  lastRemindedOn: text("last_reminded_on"), // "YYYY-MM-DD" idempotency
+  createdBy: integer("created_by")
+    .notNull()
+    .references(() => members.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // M4: recurring templates (schema ready; cron generation comes later)
 export const recurringTemplates = pgTable("recurring_templates", {
   id: serial("id").primaryKey(),

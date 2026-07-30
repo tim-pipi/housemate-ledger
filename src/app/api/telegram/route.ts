@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { houses } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { houses, shoppingItems } from "@/db/schema";
+import { and, eq, isNull } from "drizzle-orm";
 import { sendMessage, escapeHtml, appLink } from "@/lib/telegram";
 import { buildBalancesMessage, buildDigestMessage } from "@/lib/digest";
 
@@ -65,6 +65,34 @@ export async function POST(req: NextRequest) {
       await db().update(houses).set({ telegramChatId: null }).where(eq(houses.id, house.id));
       await sendMessage(chatId, "Unlinked. This group will no longer get updates.");
     }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (command === "/shopping") {
+    const house = await db().query.houses.findFirst({
+      where: eq(houses.telegramChatId, chatId),
+    });
+    if (!house) {
+      await sendMessage(chatId, "This group isn't linked to a house yet. Send /link <code> first.");
+      return NextResponse.json({ ok: true });
+    }
+    const openItems = await db().query.shoppingItems.findMany({
+      where: and(
+        eq(shoppingItems.houseId, house.id),
+        isNull(shoppingItems.boughtAt),
+        isNull(shoppingItems.archivedAt)
+      ),
+    });
+    const html =
+      openItems.length === 0
+        ? "🛒 Shopping list is empty."
+        : [
+            `🛒 <b>Shopping (${openItems.length} needed)</b>`,
+            ...openItems.map(
+              (i) => `• ${escapeHtml(i.name)}${i.note ? ` (${escapeHtml(i.note)})` : ""}`
+            ),
+          ].join("\n");
+    await sendMessage(chatId, html);
     return NextResponse.json({ ok: true });
   }
 

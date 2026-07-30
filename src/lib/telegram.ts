@@ -93,6 +93,22 @@ export function renderSettlementMessage(opts: {
   return `💸 ${escapeHtml(opts.fromName)} paid ${escapeHtml(opts.toName)} ${fmtSGD(opts.amountCents)} — settled`;
 }
 
+export function renderShoppingAddedMessage(opts: {
+  name: string;
+  note: string | null;
+  addedByName: string;
+}): string {
+  const note = opts.note ? ` (${escapeHtml(opts.note)})` : "";
+  return `🛒 ${escapeHtml(opts.addedByName)} added <b>${escapeHtml(opts.name)}</b>${note}`;
+}
+
+export function renderShoppingBoughtMessage(opts: {
+  name: string;
+  boughtByName: string;
+}): string {
+  return `✅ ${escapeHtml(opts.boughtByName)} bought <b>${escapeHtml(opts.name)}</b> — no need to buy it`;
+}
+
 export function renderRecurringMessage(opts: {
   description: string;
   amountCents: number;

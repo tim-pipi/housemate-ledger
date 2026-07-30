@@ -93,6 +93,25 @@ export const settlements = pgTable("settlements", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Shared shopping list. Status is derived, never stored: open = boughtAt
+// IS NULL, bought = boughtAt NOT NULL AND archivedAt IS NULL, archived =
+// hidden (set by "Clear bought", a soft delete — rows are kept).
+export const shoppingItems = pgTable("shopping_items", {
+  id: serial("id").primaryKey(),
+  houseId: integer("house_id")
+    .notNull()
+    .references(() => houses.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  note: text("note"),
+  addedBy: integer("added_by")
+    .notNull()
+    .references(() => members.id),
+  boughtBy: integer("bought_by").references(() => members.id),
+  boughtAt: timestamp("bought_at"),
+  archivedAt: timestamp("archived_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // M4: recurring templates (schema ready; cron generation comes later)
 export const recurringTemplates = pgTable("recurring_templates", {
   id: serial("id").primaryKey(),

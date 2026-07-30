@@ -1,6 +1,6 @@
 import { db } from "@/db";
-import { expenses, expenseShares, settlements, members } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { expenses, expenseShares, settlements, members, shoppingItems } from "@/db/schema";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { computeNet, simplify, type Transfer } from "@/lib/balances";
 import { fmtSGD } from "@/lib/constants";
 import { escapeHtml, appLink } from "@/lib/telegram";
@@ -66,13 +66,31 @@ export async function buildDigestMessage(house: {
   );
   const transfers = simplify(net);
 
-  return [
+  const openItems = await db().query.shoppingItems.findMany({
+    where: and(
+      eq(shoppingItems.houseId, house.id),
+      isNull(shoppingItems.boughtAt),
+      isNull(shoppingItems.archivedAt)
+    ),
+  });
+
+  const lines = [
     `📒 <b>${escapeHtml(house.name)} — weekly digest</b>`,
     `This month so far: ${fmtSGD(monthSpend)}`,
     "",
     "Outstanding:",
     renderOutstanding(transfers, byId),
-    "",
-    `Settle up: ${appLink(house.slug)}`,
-  ].join("\n");
+  ];
+
+  if (openItems.length > 0) {
+    lines.push(
+      "",
+      `🛒 Shopping (${openItems.length} needed):`,
+      openItems.map((i) => escapeHtml(i.name)).join(", ")
+    );
+  }
+
+  lines.push("", `Settle up: ${appLink(house.slug)}`);
+
+  return lines.join("\n");
 }

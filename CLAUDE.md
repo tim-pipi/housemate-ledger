@@ -47,11 +47,23 @@ A full PRD exists (v1.0, approved) — summary of its resolved decisions:
   (✏️/🗑️ prefixed). Every expense notification (create/edit) includes a
   per-person "X owes $Y" breakdown, not just the payer/category/split-method
   line the doc sketched.
+- **Shared shopping list** (see `docs/newfeature.md` for the design doc — it
+  also specs a "House Calendar / Reminders" feature that is **not** built yet;
+  only Feature 1, the shopping list, has been implemented). Any member adds
+  items (name + optional note); any member ticks one bought. Bought items stay
+  visible, dimmed, below the open list — that visible history is the point.
+  Untick is silent (no notification); "Clear bought" soft-deletes (sets
+  `archived_at`) rather than hard-deleting rows. Telegram notifies on add and
+  on bought (bought is the important one — it's what prevents the double-buy);
+  the `/shopping` webhook command prints the open list on demand. The weekly
+  digest appends an open-shopping-items line when the list is non-empty.
 - **Deployed and in use** on Vercel + Supabase by the owner.
 - **Not built yet (M5):** CSV export, monthly summary view, filters
   (month/category/person). Also v1.1 ideas still open: receipt photo upload,
   spend charts, saved split presets, link regeneration + house password (the
-  planned response if the house link ever leaks).
+  planned response if the house link ever leaks), the "log shopping item as
+  expense" stretch goal, and the House Calendar / Reminders feature from
+  `docs/newfeature.md`.
 
 ## Stack & why
 
@@ -81,7 +93,7 @@ A full PRD exists (v1.0, approved) — summary of its resolved decisions:
 ```
 src/
   db/schema.ts        houses, members, expenses, expense_shares,
-                      settlements, recurring_templates
+                      settlements, recurring_templates, shopping_items
   db/index.ts         lazy db() singleton — see "Invariants"
   lib/split.ts        SplitConfig type + resolveShares() — the money math
   lib/balances.ts     computeNet() + simplify() (greedy debt simplification)
@@ -103,11 +115,14 @@ src/
     recurring/        template list/new/edit + saveTemplate/deleteTemplate/postNow
                       (postTemplate in lib/recurring.ts also notifyHouse())
     telegram/         link/unlink UI — generateLinkCode/disconnectTelegram actions
+    shopping/         list/add/tick UI — addItem/buyItem/untickItem/clearBought actions
+                      (addItem, buyItem also notifyHouse())
   app/api/cron/       GET, Bearer CRON_SECRET, calls runDueTemplates()
   app/api/digest/     GET, Bearer CRON_SECRET, weekly (Sunday SGT) digest per linked house
   app/api/telegram/   POST webhook, verifies X-Telegram-Bot-Api-Secret-Token, handles
-                      /link /unlink /balances /summary
+                      /link /unlink /balances /summary /shopping
 docs/telegram.md      Telegram integration design doc (decisions + rationale)
+docs/newfeature.md    Shopping list + house calendar design doc (only shopping list built so far)
 drizzle/              generated SQL migrations (drizzle-kit generate)
 vercel.json           crons: "5 16 * * *" (00:05 SGT, bills) and "0 11 * * *" (19:00 SGT, digest)
 ```
@@ -146,6 +161,10 @@ vercel.json           crons: "5 16 * * *" (00:05 SGT, bills) and "0 11 * * *" (1
 9. **Split validation happens at template save time too** (`saveTemplate` calls
    `resolveShares` and discards the result) so a bad template fails loudly in
    the UI, not silently at 00:05 on the 1st.
+10. **Shopping item status is derived, never stored as an enum**, same
+    philosophy as balances: open = `bought_at IS NULL`, bought = `bought_at
+    NOT NULL AND archived_at IS NULL`, archived = hidden from the UI.
+    `clearBought` only ever sets `archived_at` — it never deletes rows.
 
 ## Conventions
 

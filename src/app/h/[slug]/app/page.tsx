@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { expenses, expenseShares, settlements } from "@/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import { expenses, expenseShares, settlements, shoppingItems } from "@/db/schema";
+import { and, eq, desc, inArray, isNull } from "drizzle-orm";
 import { requireMember } from "@/lib/guard";
 import { computeNet, simplify } from "@/lib/balances";
 import { fmtSGD } from "@/lib/constants";
@@ -32,6 +32,15 @@ export default async function Dashboard({ params }: { params: { slug: string } }
   const setl = await db().query.settlements.findMany({
     where: eq(settlements.houseId, house.id),
     orderBy: [desc(settlements.date), desc(settlements.id)],
+  });
+
+  const openShoppingItems = await db().query.shoppingItems.findMany({
+    where: and(
+      eq(shoppingItems.houseId, house.id),
+      isNull(shoppingItems.boughtAt),
+      isNull(shoppingItems.archivedAt)
+    ),
+    columns: { id: true },
   });
 
   const net = computeNet(
@@ -164,6 +173,12 @@ export default async function Dashboard({ params }: { params: { slug: string } }
               className="text-sm text-accent underline-offset-2 hover:underline"
             >
               Members →
+            </Link>
+            <Link
+              href={`/h/${params.slug}/app/shopping`}
+              className="text-sm text-accent underline-offset-2 hover:underline"
+            >
+              Shopping{openShoppingItems.length > 0 ? ` (${openShoppingItems.length})` : ""} →
             </Link>
             <Link
               href={`/h/${params.slug}/app/recurring`}

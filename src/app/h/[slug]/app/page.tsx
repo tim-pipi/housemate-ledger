@@ -17,10 +17,29 @@ export default async function Dashboard({ params }: { params: { slug: string } }
   const { house, me, houseMembers } = await requireMember(params.slug);
   const byId = new Map(houseMembers.map((m) => [m.id, m]));
 
-  const exp = await db().query.expenses.findMany({
-    where: eq(expenses.houseId, house.id),
-    orderBy: [desc(expenses.date), desc(expenses.id)],
-  });
+  const [exp, setl, openShoppingItems, upcomingEvents] = await Promise.all([
+    db().query.expenses.findMany({
+      where: eq(expenses.houseId, house.id),
+      orderBy: [desc(expenses.date), desc(expenses.id)],
+    }),
+    db().query.settlements.findMany({
+      where: eq(settlements.houseId, house.id),
+      orderBy: [desc(settlements.date), desc(settlements.id)],
+    }),
+    db().query.shoppingItems.findMany({
+      where: and(
+        eq(shoppingItems.houseId, house.id),
+        isNull(shoppingItems.boughtAt),
+        isNull(shoppingItems.archivedAt)
+      ),
+      columns: { id: true },
+    }),
+    db().query.houseEvents.findMany({
+      where: and(eq(houseEvents.houseId, house.id), eq(houseEvents.active, 1)),
+      orderBy: (t, { asc }) => [asc(t.nextDate)],
+      limit: 3,
+    }),
+  ]);
   const shares = exp.length
     ? await db().query.expenseShares.findMany({
         where: inArray(expenseShares.expenseId, exp.map((e) => e.id)),
@@ -32,25 +51,6 @@ export default async function Dashboard({ params }: { params: { slug: string } }
     list.push({ memberId: s.memberId, shareCents: s.shareCents });
     sharesByExpense.set(s.expenseId, list);
   }
-  const setl = await db().query.settlements.findMany({
-    where: eq(settlements.houseId, house.id),
-    orderBy: [desc(settlements.date), desc(settlements.id)],
-  });
-
-  const openShoppingItems = await db().query.shoppingItems.findMany({
-    where: and(
-      eq(shoppingItems.houseId, house.id),
-      isNull(shoppingItems.boughtAt),
-      isNull(shoppingItems.archivedAt)
-    ),
-    columns: { id: true },
-  });
-
-  const upcomingEvents = await db().query.houseEvents.findMany({
-    where: and(eq(houseEvents.houseId, house.id), eq(houseEvents.active, 1)),
-    orderBy: (t, { asc }) => [asc(t.nextDate)],
-    limit: 3,
-  });
 
   const net = computeNet(
     exp.map((e) => ({ payerMemberId: e.payerMemberId, shares: sharesByExpense.get(e.id) ?? [] })),

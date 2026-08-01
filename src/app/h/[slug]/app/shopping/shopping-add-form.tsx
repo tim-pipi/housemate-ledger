@@ -1,17 +1,9 @@
 "use client";
 
 import { useRef } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormState } from "react-dom";
+import { SubmitButton } from "@/components/SubmitButton";
 import { addItem, type FormState } from "./actions";
-
-function Submit() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className="btn-primary shrink-0" disabled={pending}>
-      {pending ? "Adding…" : "Add"}
-    </button>
-  );
-}
 
 export function ShoppingAddForm({ slug }: { slug: string }) {
   const formRef = useRef<HTMLFormElement>(null);
@@ -40,7 +32,9 @@ export function ShoppingAddForm({ slug }: { slug: string }) {
         maxLength={120}
         className="flex-1"
       />
-      <Submit />
+      <SubmitButton className="btn-primary shrink-0" pendingLabel="Adding…">
+        Add
+      </SubmitButton>
       {state?.error && <p className="text-sm text-danger sm:basis-full">{state.error}</p>}
     </form>
   );

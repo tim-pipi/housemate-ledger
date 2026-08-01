@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireMember } from "@/lib/guard";
+import { SubmitButton } from "@/components/SubmitButton";
 import { generateLinkCode, disconnectTelegram } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +23,9 @@ export default async function TelegramPage({ params }: { params: { slug: string 
           </p>
           <form action={disconnectTelegram} className="mt-3">
             <input type="hidden" name="slug" value={params.slug} />
-            <button className="btn-ghost px-3 py-1.5 text-sm">Disconnect</button>
+            <SubmitButton className="btn-ghost px-3 py-1.5 text-sm" pendingLabel="Disconnecting…">
+              Disconnect
+            </SubmitButton>
           </form>
         </div>
       ) : (
@@ -38,9 +41,9 @@ export default async function TelegramPage({ params }: { params: { slug: string 
           )}
           <form action={generateLinkCode} className="mt-3">
             <input type="hidden" name="slug" value={params.slug} />
-            <button className="btn-ghost px-3 py-1.5 text-sm">
+            <SubmitButton className="btn-ghost px-3 py-1.5 text-sm" pendingLabel="Generating…">
               {house.telegramLinkCode ? "Generate new code" : "Connect Telegram"}
-            </button>
+            </SubmitButton>
           </form>
         </div>
       )}

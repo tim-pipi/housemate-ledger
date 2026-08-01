@@ -6,6 +6,8 @@ import { requireMember } from "@/lib/guard";
 import { computeNet, simplify } from "@/lib/balances";
 import { fmtSGD } from "@/lib/constants";
 import { formatEventDate } from "@/lib/events";
+import { NavTile } from "@/components/NavTile";
+import { SubmitButton } from "@/components/SubmitButton";
 import { logout } from "../actions";
 import { quickSettle } from "./actions";
 
@@ -86,9 +88,12 @@ export default async function Dashboard({ params }: { params: { slug: string } }
           </span>
           <form action={logout}>
             <input type="hidden" name="slug" value={params.slug} />
-            <button className="text-sm text-inkmuted underline-offset-2 hover:underline">
+            <SubmitButton
+              className="text-sm text-inkmuted underline-offset-2 hover:underline"
+              pendingLabel="Logging out…"
+            >
               Log out
-            </button>
+            </SubmitButton>
           </form>
         </div>
       </header>
@@ -157,7 +162,9 @@ export default async function Dashboard({ params }: { params: { slug: string } }
                   <input type="hidden" name="from" value={t.from} />
                   <input type="hidden" name="to" value={t.to} />
                   <input type="hidden" name="amountCents" value={t.amountCents} />
-                  <button className="btn-ghost px-3 py-1 text-sm">Mark paid</button>
+                  <SubmitButton className="btn-ghost px-3 py-1 text-sm" pendingLabel="Marking…">
+                    Mark paid
+                  </SubmitButton>
                 </form>
               </li>
             ))}
@@ -167,6 +174,41 @@ export default async function Dashboard({ params }: { params: { slug: string } }
           </p>
         </section>
       )}
+
+      {/* Feature nav */}
+      <section className="mt-4">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-inkmuted">
+          Go to
+        </h2>
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <NavTile
+            href={`/h/${params.slug}/app/shopping`}
+            label="Shopping"
+            description="Household list"
+            count={openShoppingItems.length}
+          />
+          <NavTile
+            href={`/h/${params.slug}/app/recurring`}
+            label="Recurring bills"
+            description="Auto-posted monthly"
+          />
+          <NavTile
+            href={`/h/${params.slug}/app/events`}
+            label="Calendar"
+            description="Reminders"
+          />
+          <NavTile
+            href={`/h/${params.slug}/app/members`}
+            label="Members"
+            description="House roster"
+          />
+          <NavTile
+            href={`/h/${params.slug}/app/telegram`}
+            label="Telegram"
+            description="Notifications"
+          />
+        </div>
+      </section>
 
       {/* Upcoming events */}
       {upcomingEvents.length > 0 && (
@@ -195,43 +237,9 @@ export default async function Dashboard({ params }: { params: { slug: string } }
 
       {/* Activity */}
       <section className="mt-6">
-        <div className="flex items-center justify-between">
-          <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-inkmuted">
-            Activity
-          </h2>
-          <div className="flex items-center gap-4">
-            <Link
-              href={`/h/${params.slug}/app/members`}
-              className="text-sm text-accent underline-offset-2 hover:underline"
-            >
-              Members →
-            </Link>
-            <Link
-              href={`/h/${params.slug}/app/shopping`}
-              className="text-sm text-accent underline-offset-2 hover:underline"
-            >
-              Shopping{openShoppingItems.length > 0 ? ` (${openShoppingItems.length})` : ""} →
-            </Link>
-            <Link
-              href={`/h/${params.slug}/app/recurring`}
-              className="text-sm text-accent underline-offset-2 hover:underline"
-            >
-              Recurring bills →
-            </Link>
-            <Link
-              href={`/h/${params.slug}/app/events`}
-              className="text-sm text-accent underline-offset-2 hover:underline"
-            >
-              Calendar →
-            </Link>
-            <Link
-              href={`/h/${params.slug}/app/telegram`}
-              className="text-sm text-accent underline-offset-2 hover:underline"
-            >
-              Telegram →
-            </Link>
-          </div>
-        </div>
+        <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-inkmuted">
+          Activity
+        </h2>
         {feed.length === 0 ? (
           <p className="mt-3 rounded-xl border border-dashed border-line p-6 text-center text-sm text-inkmuted">
             No expenses yet. Add the first one to start the ledger.

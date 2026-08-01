@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
+import { SubmitButton } from "@/components/SubmitButton";
 import { saveExpense, deleteExpense, type FormState } from "../actions";
 import { resolveShares, type SplitConfig, type SplitMethod } from "@/lib/split";
 import { CATEGORIES, fmtSGD } from "@/lib/constants";
@@ -16,15 +17,6 @@ const METHODS: { key: SplitMethod; label: string; hint: string }[] = [
   { key: "shares", label: "Shares", hint: "Assign share units, e.g. 2 : 1 : 1 : 1" },
   { key: "adjustment", label: "+/−", hint: "Equal split, then add or subtract S$ per person" },
 ];
-
-function Submit({ editing }: { editing: boolean }) {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? "Saving…" : editing ? "Save changes" : "Add expense"}
-    </button>
-  );
-}
 
 export function ExpenseForm({
   slug,
@@ -248,22 +240,24 @@ export function ExpenseForm({
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <div className="flex items-center gap-3">
-        <Submit editing={!!initial} />
+        <SubmitButton className="btn-primary" pendingLabel="Saving…">
+          {initial ? "Save changes" : "Add expense"}
+        </SubmitButton>
         <button type="button" className="btn-ghost" onClick={() => router.back()}>
           Cancel
         </button>
         {initial && (
-          <button
-            type="submit"
+          <SubmitButton
             formAction={deleteExpense}
             formNoValidate
             className="btn-danger ml-auto"
+            pendingLabel="Deleting…"
             onClick={(e) => {
               if (!confirm("Delete this expense? This can't be undone.")) e.preventDefault();
             }}
           >
             Delete
-          </button>
+          </SubmitButton>
         )}
       </div>
     </form>

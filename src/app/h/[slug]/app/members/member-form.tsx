@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
+import { SubmitButton } from "@/components/SubmitButton";
 import { saveMember, type FormState } from "./actions";
 import { MEMBER_COLORS } from "@/lib/constants";
 
@@ -12,15 +13,6 @@ type Member = {
   color: string;
   passwordHash: string | null;
 };
-
-function Submit() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? "Saving…" : "Save changes"}
-    </button>
-  );
-}
 
 export function MemberForm({ slug, member }: { slug: string; member: Member }) {
   const router = useRouter();
@@ -85,7 +77,9 @@ export function MemberForm({ slug, member }: { slug: string; member: Member }) {
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <div className="flex items-center gap-3">
-        <Submit />
+        <SubmitButton className="btn-primary" pendingLabel="Saving…">
+          Save changes
+        </SubmitButton>
         <button type="button" className="btn-ghost" onClick={() => router.back()}>
           Cancel
         </button>

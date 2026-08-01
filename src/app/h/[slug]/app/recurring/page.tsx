@@ -5,6 +5,10 @@ import { eq } from "drizzle-orm";
 import { requireMember } from "@/lib/guard";
 import { fmtSGD } from "@/lib/constants";
 import { sgToday } from "@/lib/recurring";
+import { Card } from "@/components/Card";
+import { Badge } from "@/components/Badge";
+import { PageHeader } from "@/components/PageHeader";
+import { SubmitButton } from "@/components/SubmitButton";
 import { postNow } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -28,20 +32,16 @@ export default async function Recurring({ params }: { params: { slug: string } }
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
-      <Link href={`/h/${params.slug}/app`} className="text-sm text-inkmuted hover:underline">
-        ← Back to dashboard
-      </Link>
-      <div className="mt-2 flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold">Recurring bills</h1>
-        <Link href={`/h/${params.slug}/app/recurring/new`} className="btn-primary text-sm">
-          + New template
-        </Link>
-      </div>
-      <p className="mt-1 text-sm text-inkmuted">
-        Templates post automatically as an expense on their day each month (just
-        after midnight SGT). Edit the posted expense afterwards if the actual
-        bill differs.
-      </p>
+      <PageHeader
+        backHref={`/h/${params.slug}/app`}
+        title="Recurring bills"
+        action={
+          <Link href={`/h/${params.slug}/app/recurring/new`} className="btn-primary text-sm">
+            + New template
+          </Link>
+        }
+        description="Templates post automatically as an expense on their day each month (just after midnight SGT). Edit the posted expense afterwards if the actual bill differs."
+      />
 
       {templates.length === 0 ? (
         <p className="mt-6 rounded-xl border border-dashed border-line p-6 text-center text-sm text-inkmuted">
@@ -50,7 +50,7 @@ export default async function Recurring({ params }: { params: { slug: string } }
       ) : (
         <ul className="mt-4 space-y-2">
           {templates.map((t) => (
-            <li key={t.id} className="rounded-xl bg-white p-4 shadow-card">
+            <Card as="li" key={t.id}>
               <div className="flex items-center justify-between gap-3">
                 <Link
                   href={`/h/${params.slug}/app/recurring/${t.id}`}
@@ -58,14 +58,10 @@ export default async function Recurring({ params }: { params: { slug: string } }
                 >
                   <span className="flex items-center gap-2 font-medium">
                     {t.description}
-                    {!t.active && (
-                      <span className="rounded-full bg-line px-2 py-0.5 text-xs text-inkmuted">
-                        paused
-                      </span>
-                    )}
+                    {!t.active && <Badge>paused</Badge>}
                   </span>
                   <span className="block text-xs text-inkmuted">
-                    Day {t.dayOfMonth} · {t.category} · paid by{" "}
+                    Day <span className="tnum">{t.dayOfMonth}</span> · {t.category} · paid by{" "}
                     {byId.get(t.payerMemberId)?.username} · split{" "}
                     {METHOD_LABEL[t.splitMethod] ?? t.splitMethod}
                   </span>
@@ -84,13 +80,13 @@ export default async function Recurring({ params }: { params: { slug: string } }
                   <form action={postNow}>
                     <input type="hidden" name="slug" value={params.slug} />
                     <input type="hidden" name="templateId" value={t.id} />
-                    <button className="btn-ghost px-3 py-1 text-xs">
+                    <SubmitButton className="btn-ghost px-3 py-1 text-xs" pendingLabel="Posting…">
                       Post {ym} now
-                    </button>
+                    </SubmitButton>
                   </form>
                 )}
               </div>
-            </li>
+            </Card>
           ))}
         </ul>
       )}

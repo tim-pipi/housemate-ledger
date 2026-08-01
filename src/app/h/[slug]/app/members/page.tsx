@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireMember } from "@/lib/guard";
+import { SubmitButton } from "@/components/SubmitButton";
 import { toggleMemberActive } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -46,9 +47,12 @@ export default async function MembersPage({ params }: { params: { slug: string }
                 <form action={toggleMemberActive}>
                   <input type="hidden" name="slug" value={params.slug} />
                   <input type="hidden" name="memberId" value={m.id} />
-                  <button className="btn-ghost px-3 py-1.5 text-sm">
+                  <SubmitButton
+                    className="btn-ghost px-3 py-1.5 text-sm"
+                    pendingLabel={m.active ? "Deactivating…" : "Reactivating…"}
+                  >
                     {m.active ? "Deactivate" : "Reactivate"}
-                  </button>
+                  </SubmitButton>
                 </form>
               )}
               <Link

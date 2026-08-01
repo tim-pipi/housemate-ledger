@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
+import { SubmitButton } from "@/components/SubmitButton";
 import { saveTemplate, deleteTemplate, type FormState } from "./actions";
 import { resolveShares, type SplitConfig, type SplitMethod } from "@/lib/split";
 import { CATEGORIES, fmtSGD } from "@/lib/constants";
@@ -16,15 +17,6 @@ const METHODS: { key: SplitMethod; label: string; hint: string }[] = [
   { key: "shares", label: "Shares", hint: "Assign share units, e.g. 2 : 1 : 1 : 1" },
   { key: "adjustment", label: "+/−", hint: "Equal split, then add or subtract S$ per person" },
 ];
-
-function Submit({ editing }: { editing: boolean }) {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? "Saving…" : editing ? "Save template" : "Create template"}
-    </button>
-  );
-}
 
 export function RecurringForm({
   slug,
@@ -259,23 +251,25 @@ export function RecurringForm({
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <div className="flex items-center gap-3">
-        <Submit editing={!!initial} />
+        <SubmitButton className="btn-primary" pendingLabel="Saving…">
+          {initial ? "Save template" : "Create template"}
+        </SubmitButton>
         <button type="button" className="btn-ghost" onClick={() => router.back()}>
           Cancel
         </button>
         {initial && (
-          <button
-            type="submit"
+          <SubmitButton
             formAction={deleteTemplate}
             formNoValidate
             className="btn-danger ml-auto"
+            pendingLabel="Deleting…"
             onClick={(e) => {
               if (!confirm("Delete this template? Already-posted expenses stay in the ledger."))
                 e.preventDefault();
             }}
           >
             Delete
-          </button>
+          </SubmitButton>
         )}
       </div>
     </form>

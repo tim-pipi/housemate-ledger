@@ -1,8 +1,10 @@
-import Link from "next/link";
 import { db } from "@/db";
 import { shoppingItems } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { requireMember } from "@/lib/guard";
+import { Card } from "@/components/Card";
+import { PageHeader } from "@/components/PageHeader";
+import { SubmitButton } from "@/components/SubmitButton";
 import { buyItem, untickItem, clearBought } from "./actions";
 import { ShoppingAddForm } from "./shopping-add-form";
 
@@ -24,14 +26,11 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
-      <Link href={`/h/${params.slug}/app`} className="text-sm text-inkmuted hover:underline">
-        ← Back to dashboard
-      </Link>
-      <h1 className="mt-2 font-display text-2xl font-bold">Shopping list</h1>
-      <p className="mt-1 text-sm text-inkmuted">
-        Add what the house needs. Tick an item off once it's bought — bought
-        items stay visible below so nobody double-buys.
-      </p>
+      <PageHeader
+        backHref={`/h/${params.slug}/app`}
+        title="Shopping list"
+        description="Add what the house needs. Tick an item off once it's bought — bought items stay visible below so nobody double-buys."
+      />
 
       <ShoppingAddForm slug={params.slug} />
 
@@ -46,18 +45,15 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
         ) : (
           <ul className="mt-2 space-y-2">
             {open.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center gap-3 rounded-xl bg-white p-3.5 shadow-card"
-              >
+              <Card as="li" key={item.id} className="flex items-center gap-3">
                 <form action={buyItem}>
                   <input type="hidden" name="slug" value={params.slug} />
                   <input type="hidden" name="itemId" value={item.id} />
-                  <button
-                    type="submit"
-                    className="h-5 w-5 shrink-0 rounded-full border-2 border-line transition-colors hover:border-accent"
+                  <SubmitButton
+                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-line transition-colors hover:border-accent"
                     aria-label={`Mark ${item.name} as bought`}
                     title="Mark as bought"
+                    pendingLabel=""
                   />
                 </form>
                 <span className="min-w-0 flex-1">
@@ -67,7 +63,7 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
                 <span className="shrink-0 text-xs text-inkmuted">
                   added by {byId.get(item.addedBy)?.username ?? "?"}
                 </span>
-              </li>
+              </Card>
             ))}
           </ul>
         )}
@@ -81,26 +77,25 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
             </h2>
             <form action={clearBought}>
               <input type="hidden" name="slug" value={params.slug} />
-              <button className="btn-ghost px-3 py-1 text-xs">Clear bought</button>
+              <SubmitButton className="btn-ghost px-3 py-1 text-xs" pendingLabel="Clearing…">
+                Clear bought
+              </SubmitButton>
             </form>
           </div>
           <ul className="mt-2 space-y-2">
             {bought.map((item) => (
-              <li
-                key={item.id}
-                className="flex items-center gap-3 rounded-xl border border-line p-3.5 opacity-60"
-              >
+              <Card as="li" key={item.id} muted className="flex items-center gap-3">
                 <form action={untickItem}>
                   <input type="hidden" name="slug" value={params.slug} />
                   <input type="hidden" name="itemId" value={item.id} />
-                  <button
-                    type="submit"
+                  <SubmitButton
                     className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-xs text-white"
                     aria-label={`Mark ${item.name} as not bought`}
                     title="Undo — mark as not bought"
+                    pendingLabel=""
                   >
                     ✓
-                  </button>
+                  </SubmitButton>
                 </form>
                 <span className="min-w-0 flex-1">
                   <span className="block font-medium line-through">{item.name}</span>
@@ -109,9 +104,9 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
                   )}
                 </span>
                 <span className="shrink-0 text-xs text-inkmuted">
-                  {byId.get(item.boughtBy ?? -1)?.username ?? "?"}
+                  bought by {byId.get(item.boughtBy ?? -1)?.username ?? "?"}
                 </span>
-              </li>
+              </Card>
             ))}
           </ul>
         </section>

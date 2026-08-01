@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormState } from "react-dom";
 import { useRouter } from "next/navigation";
+import { SubmitButton } from "@/components/SubmitButton";
 import { saveEvent, deleteEvent, type FormState } from "./actions";
 import type { Recurrence } from "@/lib/events";
 
@@ -12,15 +13,6 @@ const FREQ_OPTIONS: { key: Recurrence["freq"]; label: string }[] = [
   { key: "months", label: "Every N months" },
   { key: "yearly", label: "Yearly" },
 ];
-
-function Submit({ editing }: { editing: boolean }) {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className="btn-primary" disabled={pending}>
-      {pending ? "Saving…" : editing ? "Save event" : "Create event"}
-    </button>
-  );
-}
 
 export function EventForm({
   slug,
@@ -152,22 +144,24 @@ export function EventForm({
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <div className="flex items-center gap-3">
-        <Submit editing={!!initial} />
+        <SubmitButton className="btn-primary" pendingLabel="Saving…">
+          {initial ? "Save event" : "Create event"}
+        </SubmitButton>
         <button type="button" className="btn-ghost" onClick={() => router.back()}>
           Cancel
         </button>
         {initial && (
-          <button
-            type="submit"
+          <SubmitButton
             formAction={deleteEvent}
             formNoValidate
             className="btn-danger ml-auto"
+            pendingLabel="Deleting…"
             onClick={(e) => {
               if (!confirm("Delete this event?")) e.preventDefault();
             }}
           >
             Delete
-          </button>
+          </SubmitButton>
         )}
       </div>
     </form>

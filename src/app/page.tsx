@@ -1,4 +1,5 @@
 import { createHouse } from "./actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +21,9 @@ export default function Home() {
           House name
         </label>
         <input id="name" name="name" placeholder="e.g. Tampines 4B" required maxLength={60} />
-        <button type="submit" className="btn-primary mt-2">
+        <SubmitButton className="btn-primary mt-2" pendingLabel="Creating…">
           Create house & get link
-        </button>
+        </SubmitButton>
       </form>
       <p className="mt-6 text-xs text-inkmuted">
         Anyone with the link can join. Keep it within your household.

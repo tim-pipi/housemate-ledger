@@ -1,17 +1,9 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormState } from "react-dom";
 import { useState } from "react";
+import { SubmitButton } from "@/components/SubmitButton";
 import { loginOrJoin, type LoginState } from "./actions";
-
-function Submit() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" className="btn-primary mt-2" disabled={pending}>
-      {pending ? "Entering…" : "Enter house"}
-    </button>
-  );
-}
 
 export function LoginForm({
   slug,
@@ -73,7 +65,9 @@ export function LoginForm({
         autoComplete="current-password"
       />
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
-      <Submit />
+      <SubmitButton className="btn-primary mt-2" pendingLabel="Entering…">
+        Enter house
+      </SubmitButton>
     </form>
   );
 }

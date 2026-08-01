@@ -115,10 +115,12 @@ export function renderEventCreatedMessage(opts: {
   title: string;
   dateLabel: string;
   createdByName: string;
+  timeLabel?: string | null;
 }): string {
+  const timeText = opts.timeLabel ? `, ${escapeHtml(opts.timeLabel)}` : "";
   return `📅 ${escapeHtml(opts.createdByName)} added <b>${escapeHtml(opts.title)}</b> — ${escapeHtml(
     opts.dateLabel
-  )}`;
+  )}${timeText}`;
 }
 
 export function renderEventReminderMessage(opts: {
@@ -126,11 +128,13 @@ export function renderEventReminderMessage(opts: {
   note: string | null;
   recurrenceLabel: string | null; // null for one-off events
   when: "tomorrow" | "today";
+  timeLabel?: string | null;
 }): string {
   const label = opts.when === "tomorrow" ? "Tomorrow" : "Today";
   const noteText = opts.note ? ` (${escapeHtml(opts.note)})` : "";
   const recurText = opts.recurrenceLabel ? ` — ${escapeHtml(opts.recurrenceLabel)}` : "";
-  return `⏰ ${label}: <b>${escapeHtml(opts.title)}</b>${noteText}${recurText}`;
+  const timeText = opts.timeLabel ? `, ${escapeHtml(opts.timeLabel)}` : "";
+  return `⏰ ${label}: <b>${escapeHtml(opts.title)}</b>${noteText}${recurText}${timeText}`;
 }
 
 export function renderRecurringMessage(opts: {

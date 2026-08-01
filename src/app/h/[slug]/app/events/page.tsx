@@ -1,24 +1,36 @@
 import Link from "next/link";
-import { db } from "@/db";
-import { houseEvents } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import { requireMember } from "@/lib/guard";
-import { formatEventDate, describeRecurrence, type Recurrence } from "@/lib/events";
-import { Card } from "@/components/Card";
-import { Badge } from "@/components/Badge";
+import { sgToday } from "@/lib/recurring";
 import { PageHeader } from "@/components/PageHeader";
+import { buildCalendarData, type CalendarViewMode } from "./calendar-data";
+import { CalendarView } from "./calendar-view";
 
 export const dynamic = "force-dynamic";
 
-export default async function Events({ params }: { params: { slug: string } }) {
+function todayStr(): string {
+  const { year, month, day } = sgToday();
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+export default async function Events({
+  params,
+  searchParams,
+}: {
+  params: { slug: string };
+  searchParams: { view?: string; date?: string };
+}) {
   const { house } = await requireMember(params.slug);
-  const events = await db().query.houseEvents.findMany({
-    where: eq(houseEvents.houseId, house.id),
-    orderBy: (t, { asc }) => [asc(t.nextDate), asc(t.id)],
-  });
+
+  const view: CalendarViewMode = searchParams.view === "week" ? "week" : "month";
+  const anchorDate =
+    searchParams.date && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date)
+      ? searchParams.date
+      : todayStr();
+
+  const data = await buildCalendarData(house.id, view, anchorDate);
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
+    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
       <PageHeader
         backHref={`/h/${params.slug}/app`}
         title="Calendar"
@@ -29,42 +41,9 @@ export default async function Events({ params }: { params: { slug: string } }) {
         }
         description="Reminders for things that happen in the real world — paying the landlord, booking servicing, house dinners. Separate from the ledger's auto-posted recurring bills."
       />
-
-      {events.length === 0 ? (
-        <p className="mt-6 rounded-xl border border-dashed border-line p-6 text-center text-sm text-inkmuted">
-          No events yet.
-        </p>
-      ) : (
-        <ul className="mt-4 space-y-2">
-          {events.map((e) => (
-            <Card as="li" key={e.id}>
-              <Link
-                href={`/h/${params.slug}/app/events/${e.id}`}
-                className="flex items-center justify-between gap-3 hover:text-accent"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2 font-medium">
-                    {e.title}
-                    {!e.active && <Badge>paused</Badge>}
-                  </span>
-                  <span className="mt-0.5 block text-xs text-inkmuted">
-                    <span className="tnum font-medium text-ink/70">
-                      {formatEventDate(e.nextDate)}
-                    </span>
-                    {" · "}
-                    {describeRecurrence(e.recurrence as Recurrence)}
-                  </span>
-                  {e.note && (
-                    <span className="mt-0.5 block truncate text-xs text-inkmuted/80">
-                      {e.note}
-                    </span>
-                  )}
-                </span>
-              </Link>
-            </Card>
-          ))}
-        </ul>
-      )}
+      <div className="mt-4">
+        <CalendarView slug={params.slug} initialData={data} />
+      </div>
     </main>
   );
 }

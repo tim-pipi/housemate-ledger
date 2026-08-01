@@ -124,6 +124,9 @@ export const houseEvents = pgTable("house_events", {
   title: text("title").notNull(),
   note: text("note"),
   nextDate: date("next_date").notNull(),
+  // "HH:MM" 24-hour strings, see formatEventTime in lib/events.ts. Both null = all-day.
+  startTime: text("start_time"),
+  endTime: text("end_time"),
   recurrence: jsonb("recurrence").notNull(), // see Recurrence type in lib/events.ts
   remindDaysBefore: integer("remind_days_before").notNull().default(1),
   active: integer("active").notNull().default(1),

@@ -65,6 +65,17 @@ A full PRD exists (v1.0, approved) — summary of its resolved decisions:
   budget constraint." Telegram notifies on event creation and on reminders
   only; edits, deletes, and routine `next_date` roll-over are silent (noise).
   The weekly digest appends a next-3-events line when any are active.
+  **Calendar scope expansion (post-`docs/newfeature.md`):** the owner later
+  approved adding optional start/end time-of-day per event and replacing the
+  flat list with Month/Week calendar-grid views (Google-Calendar-style),
+  deliberately beyond `docs/newfeature.md`'s stated v1 scope (which excluded
+  times-of-day and calendar sync — `docs/newfeature.md` is left as-is, a
+  historical record, not edited). Occurrences of recurring events are
+  projected in-memory for display (`projectOccurrences` in `lib/events.ts`,
+  grid/layout math in `lib/calendar-grid.ts`) and never persisted —
+  `next_date`/`last_reminded_on`/`runEventScan()` are completely unchanged.
+  See Invariant 12. No calendar sync (Google/iCal import/export) was added;
+  still out of scope.
 - **Deployed and in use** on Vercel + Supabase by the owner.
 - **Not built yet (M5):** CSV export, monthly summary view, filters
   (month/category/person). Also v1.1 ideas still open: receipt photo upload,
@@ -112,8 +123,17 @@ src/
   lib/digest.ts       buildBalancesMessage/buildDigestMessage — shared by the weekly
                       cron and the /balances,/summary webhook commands
   lib/events.ts       Recurrence type, advanceNextDate(), describeRecurrence(),
-                      formatEventDate(), runEventScan() (house_events only —
-                      kept fully separate from lib/recurring.ts, see Invariant 11)
+                      formatEventDate(), formatEventTime(), projectOccurrences()
+                      (pure, derives calendar-grid occurrences — see Invariant 12),
+                      runEventScan() (house_events only — kept fully separate
+                      from lib/recurring.ts, see Invariant 11)
+  lib/date-strings.ts parseDate/fmtDate/addDays — zero-dependency Y-M-D string math,
+                      the one shared implementation lib/events.ts and
+                      lib/calendar-grid.ts both build on
+  lib/calendar-grid.ts getMonthGridDates(), getWeekDates(), layoutDayTimedBlocks()
+                      — pure month/week grid + timed-block layout math, no DB,
+                      no knowledge of house_events; safe to import from client
+                      components (unlike lib/events.ts)
   lib/constants.ts    categories, member color palette, fmtSGD()
   app/page.tsx        landing: create house
   app/actions.ts      createHouse (nanoid 12-char slug, ambiguous chars excluded)
@@ -127,8 +147,15 @@ src/
     telegram/         link/unlink UI — generateLinkCode/disconnectTelegram actions
     shopping/         list/add/tick UI — addItem/buyItem/untickItem/clearBought actions
                       (addItem, buyItem also notifyHouse())
-    events/           list/new/edit UI — saveEvent/deleteEvent actions (saveEvent's
-                      create branch also notifyHouse(); edits are silent)
+    events/           Month/Week calendar-grid UI (calendar-view.tsx client shell,
+                      month-grid.tsx, week-grid.tsx) + new/edit form (event-form.tsx,
+                      with an all-day toggle and optional start/end time) —
+                      saveEvent/deleteEvent/getCalendarData actions (saveEvent's
+                      create branch also notifyHouse(); edits are silent).
+                      calendar-data.ts holds buildCalendarData(), the shared
+                      fetch-all-events-and-project-occurrences helper used by
+                      both the page's initial server render and getCalendarData
+                      (client-side prev/next/today/view-toggle navigation)
   app/api/cron/       GET, Bearer CRON_SECRET, calls runDueTemplates()
   app/api/digest/     GET, Bearer CRON_SECRET, calls runEventScan() every run (daily),
                       weekly (Sunday SGT) digest send per linked house
@@ -188,6 +215,29 @@ vercel.json           crons: "5 16 * * *" (00:05 SGT, bills) and "0 11 * * *" (1
     delivery is folded into `/api/digest` (which already runs daily) rather
     than given its own cron — Vercel Hobby's cron slots are scarce and both
     existing slots (`/api/cron`, `/api/digest`) are already spoken for.
+12. **Calendar occurrences (month/week grid) are derived at render time via
+    `projectOccurrences` (`lib/events.ts`), never stored.** `house_events` rows
+    only ever persist the single next occurrence (`next_date`) plus the
+    recurrence rule — same philosophy as Invariant 4 (balances) and Invariant
+    10 (shopping status). One-off events (`freq: "none"`) always display at
+    their stored `next_date` regardless of `active`, so calendar history is
+    preserved (a past dinner still shows when you navigate back to that week).
+    Recurring events project past+future occurrences from their rule while
+    `active=1`; once paused (`active=0`), only occurrences on or before today
+    keep showing — future projection stops immediately, past history does not
+    disappear. This policy lives in `buildCalendarData`
+    (`app/h/[slug]/app/events/calendar-data.ts`), not inside
+    `projectOccurrences` itself, which stays a pure "what does this rule show
+    in this range" function with no opinion on `active`.
+13. **`lib/calendar-grid.ts` must never import from `lib/events.ts`** (only
+    from `lib/date-strings.ts`). `lib/events.ts` imports `db`/`telegram` and
+    is server-only; `calendar-grid.ts`'s month/week grid and timed-block
+    layout math is imported directly by client components
+    (`month-grid.tsx`/`week-grid.tsx`/`calendar-view.tsx`), so any transitive
+    server dependency there would break the client bundle. `lib/date-strings.ts`
+    (parseDate/fmtDate/addDays) is the shared zero-dependency base both
+    `lib/events.ts` and `lib/calendar-grid.ts` build on — don't duplicate that
+    string math a third time.
 
 ## Conventions
 

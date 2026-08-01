@@ -17,6 +17,7 @@ const FREQ_OPTIONS: { key: Recurrence["freq"]; label: string }[] = [
 export function EventForm({
   slug,
   initial,
+  defaultDate,
 }: {
   slug: string;
   initial?: {
@@ -24,10 +25,13 @@ export function EventForm({
     title: string;
     note: string;
     nextDate: string;
+    startTime: string | null;
+    endTime: string | null;
     remindDaysBefore: number;
     active: boolean;
     recurrence: Recurrence;
   };
+  defaultDate?: string;
 }) {
   const router = useRouter();
   const [state, formAction] = useFormState<FormState, FormData>(saveEvent, undefined);
@@ -38,6 +42,7 @@ export function EventForm({
   const [monthsInterval, setMonthsInterval] = useState(
     initial?.recurrence.freq === "months" ? initial.recurrence.interval : 4
   );
+  const [allDay, setAllDay] = useState(!initial?.startTime);
 
   return (
     <form action={formAction} className="mt-6 flex flex-col gap-4">
@@ -71,7 +76,7 @@ export function EventForm({
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-sm font-medium">
           Date
-          <input name="nextDate" type="date" defaultValue={initial?.nextDate} required />
+          <input name="nextDate" type="date" defaultValue={initial?.nextDate ?? defaultDate} required />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           Remind days before
@@ -83,6 +88,31 @@ export function EventForm({
             required
           />
         </label>
+      </div>
+
+      <div>
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            name="allDay"
+            defaultChecked={allDay}
+            onChange={(e) => setAllDay(e.target.checked)}
+            className="h-4 w-4 accent-[#0E7C6B]"
+          />
+          All day
+        </label>
+        {!allDay && (
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Start time
+              <input name="startTime" type="time" defaultValue={initial?.startTime ?? ""} required={!allDay} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              End time (optional)
+              <input name="endTime" type="time" defaultValue={initial?.endTime ?? ""} />
+            </label>
+          </div>
+        )}
       </div>
 
       <fieldset>

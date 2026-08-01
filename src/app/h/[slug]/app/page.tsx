@@ -5,7 +5,7 @@ import { and, eq, desc, inArray, isNull } from "drizzle-orm";
 import { requireMember } from "@/lib/guard";
 import { computeNet, simplify } from "@/lib/balances";
 import { fmtSGD } from "@/lib/constants";
-import { formatEventDate } from "@/lib/events";
+import { formatEventDate, formatEventTime } from "@/lib/events";
 import { NavTile } from "@/components/NavTile";
 import { SubmitButton } from "@/components/SubmitButton";
 import { logout } from "../actions";
@@ -228,7 +228,10 @@ export default async function Dashboard({ params }: { params: { slug: string } }
             {upcomingEvents.map((e) => (
               <li key={e.id} className="flex items-center justify-between text-sm">
                 <span>{e.title}</span>
-                <span className="tnum text-inkmuted">{formatEventDate(e.nextDate)}</span>
+                <span className="tnum text-inkmuted">
+                  {formatEventDate(e.nextDate)}
+                  {formatEventTime(e.startTime, e.endTime) && ` · ${formatEventTime(e.startTime, e.endTime)}`}
+                </span>
               </li>
             ))}
           </ul>

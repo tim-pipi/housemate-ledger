@@ -33,6 +33,8 @@ export default async function EditEvent({
           title: e.title,
           note: e.note ?? "",
           nextDate: e.nextDate,
+          startTime: e.startTime,
+          endTime: e.endTime,
           remindDaysBefore: e.remindDaysBefore,
           active: e.active === 1,
           recurrence: e.recurrence as Recurrence,

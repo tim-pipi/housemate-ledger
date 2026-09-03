@@ -142,11 +142,18 @@ src/
                       activity feed with a "See all" link to activity/)
     actions.ts        saveExpense / deleteExpense / settleUp / quickSettle
                       (create-expense, settleUp, quickSettle also notifyHouse())
-    activity/         full expense+settlement history, unpaginated (household scale
-                      makes pagination unnecessary) — reuses lib/activity.ts's
-                      buildFeed() and components/ActivityFeed.tsx, the same feed
-                      merge/render the dashboard uses for its capped preview, so the
-                      two never drift out of sync
+    activity/         full expense+settlement history, "Load more" paginated
+                      (activity-feed-list.tsx, client) in lib/activity.ts's
+                      ACTIVITY_PAGE_SIZE (20) increments via loadMoreActivity —
+                      re-fetches all house expenses/settlements and re-slices
+                      the merged feed by offset each call rather than a DB-level
+                      cursor (cheap at household scale, same "fetch everything,
+                      derive in memory" approach as balances, Invariant 4;
+                      avoids cursor logic across two unioned tables ordered by
+                      (date, id) desc). Reuses lib/activity.ts's buildFeed() and
+                      components/ActivityFeed.tsx, the same feed merge/render
+                      the dashboard uses for its capped preview, so the two
+                      never drift out of sync
     expenses/         expense-form.tsx (client, live preview) + new/edit pages
     recurring/        template list/new/edit + saveTemplate/deleteTemplate/postNow
                       (postTemplate in lib/recurring.ts also notifyHouse())

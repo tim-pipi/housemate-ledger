@@ -1,5 +1,10 @@
 import type { expenses, settlements } from "@/db/schema";
 
+// Shared by activity/page.tsx's initial server render and the loadMoreActivity
+// action's subsequent "Load more" fetches, so both slice the merged feed in
+// the same increments.
+export const ACTIVITY_PAGE_SIZE = 20;
+
 type ExpenseRow = typeof expenses.$inferSelect;
 type SettlementRow = typeof settlements.$inferSelect;
 

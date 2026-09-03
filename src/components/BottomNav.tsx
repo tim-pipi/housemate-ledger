@@ -35,7 +35,7 @@ export function BottomNav({ slug }: { slug: string }) {
   if (rel === null || !VISIBLE_PATHS.has(rel)) return null;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white/95 backdrop-blur">
+    <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-white/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-2xl items-stretch justify-around px-2">
         {TABS.map((tab) => {
           const active = tab.isActive(rel);
@@ -44,6 +44,7 @@ export function BottomNav({ slug }: { slug: string }) {
             <Link
               key={tab.key}
               href={`${base}${tab.relHref}`}
+              aria-current={active ? "page" : undefined}
               className={`flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors ${
                 active ? "text-accent" : "text-inkmuted hover:text-accent"
               }`}

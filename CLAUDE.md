@@ -76,6 +76,17 @@ A full PRD exists (v1.0, approved) — summary of its resolved decisions:
   `next_date`/`last_reminded_on`/`runEventScan()` are completely unchanged.
   See Invariant 12. No calendar sync (Google/iCal import/export) was added;
   still out of scope.
+- **Bottom navigation (persistent tab bar)** replaced the dashboard's "Go to"
+  tile grid with a 5-tab bar (Home/Shopping/Calendar/Activity/More) that
+  stays visible across every browse/list page (hidden on create/edit forms).
+  Recurring bills, Members, and Telegram — the destinations that don't fit
+  the primary bar — moved to a new `/app/more` landing page. **Known
+  trade-off:** the old dashboard grid's Shopping tile showed an open-item
+  count badge; the new Shopping tab has no equivalent badge, so that
+  glanceable "don't double-buy" signal is gone until you open the Shopping
+  tab. Accepted deliberately rather than plumbing a count into the nav bar
+  (would require crossing the server/client boundary non-trivially) — revisit
+  if the household finds this a real gap in practice.
 - **Deployed and in use** on Vercel + Supabase by the owner.
 - **Not built yet (M5):** CSV export, monthly summary view, filters
   (month/category/person). Also v1.1 ideas still open: receipt photo upload,
@@ -89,6 +100,10 @@ A full PRD exists (v1.0, approved) — summary of its resolved decisions:
   separate API layer to maintain; forms work without client JS where possible).
 - **Tailwind CSS**, hand-rolled components — shadcn/ui was considered and
   skipped to keep the dependency surface tiny for an app this size.
+- **`lucide-react`** for icons (bottom nav tabs only) — small, tree-shaken,
+  zero transitive dependencies (one peer dep on React, already satisfied).
+  The one exception to the "hand-rolled components, minimal dependencies"
+  stance above; icons were judged not worth hand-rolling for a 5-icon bar.
 - **Drizzle ORM + `postgres` driver** against **Supabase Postgres (free tier)**.
 - **Supabase is used ONLY as a Postgres host.** Supabase Auth and RLS are
   deliberately unused — the when2meet access model doesn't fit email-based auth
@@ -138,6 +153,10 @@ src/
   app/page.tsx        landing: create house
   app/actions.ts      createHouse (nanoid 12-char slug, ambiguous chars excluded)
   app/h/[slug]/       login page + loginOrJoin/logout actions
+  app/h/[slug]/app/layout.tsx  shared layout rendering the persistent bottom nav
+                      (components/BottomNav.tsx: Home/Shopping/Calendar/Activity/More,
+                      lucide-react icons) on an exact-path allowlist of 8 browse/list
+                      routes — hidden on every create/edit form page
   app/h/[slug]/app/   dashboard (balances receipt, settle suggestions, most-recent-8
                       activity feed with a "See all" link to activity/)
     actions.ts        saveExpense / deleteExpense / settleUp / quickSettle
@@ -162,6 +181,10 @@ src/
                       and toggleMemberActive (soft-delete via active flag) actions
     shopping/         list/add/tick UI — addItem/buyItem/untickItem/clearBought actions
                       (addItem, buyItem also notifyHouse())
+    more/             landing page for Recurring/Members/Telegram — the 3
+                      destinations that don't fit the primary 5-tab nav bar,
+                      reusing components/NavTile.tsx in the same grid pattern
+                      the dashboard used to render before this moved here
     events/           Month/Week calendar-grid UI (calendar-view.tsx client shell,
                       month-grid.tsx, week-grid.tsx) + new/edit form (event-form.tsx,
                       with an all-day toggle and optional start/end time) —

@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { db } from "@/db";
-import { expenses, expenseShares, settlements, shoppingItems, houseEvents } from "@/db/schema";
-import { and, eq, gte, desc, inArray, isNull } from "drizzle-orm";
+import { expenses, expenseShares, settlements, houseEvents } from "@/db/schema";
+import { and, eq, gte, desc, inArray } from "drizzle-orm";
 import { requireMember } from "@/lib/guard";
 import { computeNet, simplify } from "@/lib/balances";
 import { fmtSGD } from "@/lib/constants";
 import { formatEventDate, formatEventTime } from "@/lib/events";
 import { sgToday } from "@/lib/recurring";
 import { buildFeed } from "@/lib/activity";
-import { NavTile } from "@/components/NavTile";
 import { SubmitButton } from "@/components/SubmitButton";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { logout } from "../actions";
@@ -24,7 +23,7 @@ export default async function Dashboard({ params }: { params: { slug: string } }
   const { ym, day } = sgToday();
   const today = `${ym}-${String(day).padStart(2, "0")}`;
 
-  const [exp, setl, openShoppingItems, upcomingEvents] = await Promise.all([
+  const [exp, setl, upcomingEvents] = await Promise.all([
     db().query.expenses.findMany({
       where: eq(expenses.houseId, house.id),
       orderBy: [desc(expenses.date), desc(expenses.id)],
@@ -32,14 +31,6 @@ export default async function Dashboard({ params }: { params: { slug: string } }
     db().query.settlements.findMany({
       where: eq(settlements.houseId, house.id),
       orderBy: [desc(settlements.date), desc(settlements.id)],
-    }),
-    db().query.shoppingItems.findMany({
-      where: and(
-        eq(shoppingItems.houseId, house.id),
-        isNull(shoppingItems.boughtAt),
-        isNull(shoppingItems.archivedAt)
-      ),
-      columns: { id: true },
     }),
     db().query.houseEvents.findMany({
       where: and(eq(houseEvents.houseId, house.id), eq(houseEvents.active, 1), gte(houseEvents.nextDate, today)),
@@ -72,7 +63,7 @@ export default async function Dashboard({ params }: { params: { slug: string } }
     .reduce((a, e) => a + e.amountCents, 0);
 
   return (
-    <main className="mx-auto max-w-2xl px-4 pb-24 pt-6 sm:px-6">
+    <main className="mx-auto max-w-2xl px-4 pb-36 pt-6 sm:px-6">
       <header className="flex items-center justify-between">
         <div>
           <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-accent">
@@ -177,41 +168,6 @@ export default async function Dashboard({ params }: { params: { slug: string } }
         </section>
       )}
 
-      {/* Feature nav */}
-      <section className="mt-4">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-inkmuted">
-          Go to
-        </h2>
-        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <NavTile
-            href={`/h/${params.slug}/app/shopping`}
-            label="Shopping"
-            description="Household list"
-            count={openShoppingItems.length}
-          />
-          <NavTile
-            href={`/h/${params.slug}/app/recurring`}
-            label="Recurring bills"
-            description="Auto-posted monthly"
-          />
-          <NavTile
-            href={`/h/${params.slug}/app/events`}
-            label="Calendar"
-            description="Reminders"
-          />
-          <NavTile
-            href={`/h/${params.slug}/app/members`}
-            label="Members"
-            description="House roster"
-          />
-          <NavTile
-            href={`/h/${params.slug}/app/telegram`}
-            label="Telegram"
-            description="Notifications"
-          />
-        </div>
-      </section>
-
       {/* Upcoming events */}
       {upcomingEvents.length > 0 && (
         <section className="mt-4 rounded-xl border border-line p-4">
@@ -258,10 +214,10 @@ export default async function Dashboard({ params }: { params: { slug: string } }
         <ActivityFeed slug={params.slug} feed={feed.slice(0, DASHBOARD_FEED_LIMIT)} byId={byId} />
       </section>
 
-      {/* Add expense FAB */}
+      {/* Add expense FAB — bottom-20 clears the 64px bottom nav bar (h-16) with a margin */}
       <Link
         href={`/h/${params.slug}/app/expenses/new`}
-        className="fixed bottom-6 right-6 rounded-full bg-accent px-5 py-3 font-display font-semibold text-white shadow-card transition-colors hover:bg-accentdark"
+        className="fixed bottom-20 right-6 rounded-full bg-accent px-5 py-3 font-display font-semibold text-white shadow-card transition-colors hover:bg-accentdark"
       >
         + Add expense
       </Link>

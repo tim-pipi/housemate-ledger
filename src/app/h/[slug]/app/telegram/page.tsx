@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { requireMember } from "@/lib/guard";
+import { PageHeader } from "@/components/PageHeader";
 import { SubmitButton } from "@/components/SubmitButton";
 import { generateLinkCode, disconnectTelegram } from "./actions";
 
@@ -9,11 +9,8 @@ export default async function TelegramPage({ params }: { params: { slug: string 
   const { house } = await requireMember(params.slug);
 
   return (
-    <main className="mx-auto max-w-xl px-4 py-6 sm:px-6">
-      <Link href={`/h/${params.slug}/app`} className="text-sm text-inkmuted hover:underline">
-        ← Back
-      </Link>
-      <h1 className="mt-2 font-display text-2xl font-bold">Telegram</h1>
+    <main className="mx-auto max-w-xl px-4 pb-24 pt-6 sm:px-6">
+      <PageHeader backHref={`/h/${params.slug}/app/more`} backLabel="← Back" title="Telegram" />
 
       {house.telegramChatId ? (
         <div className="mt-6 rounded-xl bg-white p-4 shadow-card">

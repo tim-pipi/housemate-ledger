@@ -145,6 +145,8 @@ src/
     recurring/        template list/new/edit + saveTemplate/deleteTemplate/postNow
                       (postTemplate in lib/recurring.ts also notifyHouse())
     telegram/         link/unlink UI — generateLinkCode/disconnectTelegram actions
+    members/          member list + edit UI — saveMember (username/color/password)
+                      and toggleMemberActive (soft-delete via active flag) actions
     shopping/         list/add/tick UI — addItem/buyItem/untickItem/clearBought actions
                       (addItem, buyItem also notifyHouse())
     events/           Month/Week calendar-grid UI (calendar-view.tsx client shell,
@@ -264,7 +266,7 @@ npm run dev           # local dev
 npm run build         # must pass with no DATABASE_URL set (only SESSION_SECRET)
 npm run db:generate   # regenerate SQL after editing src/db/schema.ts
 npm run db:migrate    # apply migrations (needs DATABASE_URL)
-npx tsx <file>        # tsx is a devDependency; used for quick logic testing
+npx tsx <file>        # not a devDependency — npx fetches it on demand; used for quick logic testing
 ```
 
 Env vars (`.env.example` documents them):
@@ -289,9 +291,10 @@ new file in `drizzle/` → run `db:migrate` against prod → deploy.
 - Supabase free tier pauses after ~1 week idle; first request after resumes it
   (slow first load). Owner knows and accepted this.
 - The cron schedule in `vercel.json` only activates on a production deploy.
-- `members` are never deletable in the current UI — several FKs
-  (payer, created_by, shares) reference them. If you add member removal,
-  soft-delete (add an `active` flag) rather than hard delete.
+- `members` are never hard-deleted — several FKs (payer, created_by, shares)
+  reference them, so `/h/[slug]/app/members` only supports soft-delete via
+  the `active` flag (`toggleMemberActive`). Deactivated members are hidden
+  from new expenses but their history and balances remain.
 - No tests are wired into CI yet; split/balance math was verified with ad-hoc
   tsx scripts. **Good first task: turn those into real vitest tests for
   `lib/split.ts`, `lib/balances.ts`, `lib/recurring.ts`** — they're pure

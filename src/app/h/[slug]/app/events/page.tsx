@@ -31,7 +31,7 @@ export default async function Events({
   const data = await buildCalendarData(house.id, view, anchorDate);
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+    <main className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6">
       <PageHeader
         backHref={`/h/${params.slug}/app`}
         title="Calendar"

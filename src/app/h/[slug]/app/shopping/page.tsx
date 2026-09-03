@@ -25,7 +25,7 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
   );
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
+    <main className="mx-auto max-w-2xl px-4 pb-24 pt-6 sm:px-6">
       <PageHeader
         backHref={`/h/${params.slug}/app`}
         title="Shopping list"

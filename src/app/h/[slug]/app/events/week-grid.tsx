@@ -30,7 +30,10 @@ export function WeekGrid({ slug, data }: { slug: string; data: CalendarData }) {
         .map((o) => ({
           ...o,
           startMinutes: minutesFromTimeString(o.startTime!),
-          endMinutes: o.endTime ? minutesFromTimeString(o.endTime) : minutesFromTimeString(o.startTime!) + 30,
+          endMinutes: Math.min(
+            o.endTime ? minutesFromTimeString(o.endTime) : minutesFromTimeString(o.startTime!) + 30,
+            24 * 60
+          ),
         }));
       return { date, allDay, blocks: layoutDayTimedBlocks(timed) };
     }

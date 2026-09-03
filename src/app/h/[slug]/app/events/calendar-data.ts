@@ -3,7 +3,7 @@ import { houseEvents, members } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sgToday } from "@/lib/recurring";
 import { getMonthGridDates, getWeekDates } from "@/lib/calendar-grid";
-import { projectOccurrences, formatEventTime, type Recurrence } from "@/lib/events";
+import { projectOccurrences, formatEventTime, fmtDate, type Recurrence } from "@/lib/events";
 
 export type CalendarViewMode = "month" | "week";
 
@@ -39,7 +39,7 @@ export async function buildCalendarData(
   anchorDate: string
 ): Promise<CalendarData> {
   const { year, month, day } = sgToday();
-  const todayDate = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const todayDate = fmtDate(year, month, day);
 
   const [ay, am] = anchorDate.split("-").map(Number);
   const gridDates = view === "month" ? getMonthGridDates(ay, am) : getWeekDates(anchorDate);

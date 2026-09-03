@@ -6,17 +6,29 @@ export function SubmitButton({
   children,
   pendingLabel,
   className = "btn-primary",
+  name,
+  value,
+  disabled,
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { pendingLabel?: React.ReactNode }) {
-  const { pending } = useFormStatus();
+  // useFormStatus() reports pending for the whole <form>, not just this
+  // button — a native submit only includes the CLICKED button's name/value
+  // pair in the submitted FormData, so when a form has multiple distinct
+  // submit buttons (e.g. Save + Delete with different formActions), give
+  // each one a `name`/`value` pair to tell which one is actually in flight.
+  // Without both, this falls back to the whole-form pending state.
+  const { pending, data } = useFormStatus();
+  const isPending = pending && (name && value != null ? data?.get(String(name)) === String(value) : true);
   return (
     <button
       type="submit"
-      disabled={pending}
+      name={name}
+      value={value}
       className={`${className} disabled:cursor-not-allowed disabled:opacity-70`}
       {...rest}
+      disabled={isPending || disabled}
     >
-      {pending ? (
+      {isPending ? (
         <span className="inline-flex items-center gap-1.5">
           <Spinner />
           {pendingLabel ?? children}

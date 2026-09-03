@@ -84,7 +84,7 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
           </div>
           <ul className="mt-2 space-y-2">
             {bought.map((item) => (
-              <Card as="li" key={item.id} muted className="flex items-center gap-3">
+              <Card as="li" key={item.id} muted flat className="flex items-center gap-3">
                 <form action={untickItem}>
                   <input type="hidden" name="slug" value={params.slug} />
                   <input type="hidden" name="itemId" value={item.id} />

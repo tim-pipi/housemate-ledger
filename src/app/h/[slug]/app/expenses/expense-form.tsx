@@ -240,7 +240,7 @@ export function ExpenseForm({
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <div className="flex items-center gap-3">
-        <SubmitButton className="btn-primary" pendingLabel="Saving…">
+        <SubmitButton className="btn-primary" pendingLabel="Saving…" name="intent" value="save">
           {initial ? "Save changes" : "Add expense"}
         </SubmitButton>
         <button type="button" className="btn-ghost" onClick={() => router.back()}>
@@ -252,6 +252,8 @@ export function ExpenseForm({
             formNoValidate
             className="btn-danger ml-auto"
             pendingLabel="Deleting…"
+            name="intent"
+            value="delete"
             onClick={(e) => {
               if (!confirm("Delete this expense? This can't be undone.")) e.preventDefault();
             }}

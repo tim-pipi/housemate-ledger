@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { db } from "@/db";
 import { expenses, expenseShares, settlements, shoppingItems, houseEvents } from "@/db/schema";
-import { and, eq, desc, inArray, isNull } from "drizzle-orm";
+import { and, eq, gte, desc, inArray, isNull } from "drizzle-orm";
 import { requireMember } from "@/lib/guard";
 import { computeNet, simplify } from "@/lib/balances";
 import { fmtSGD } from "@/lib/constants";
 import { formatEventDate, formatEventTime } from "@/lib/events";
+import { sgToday } from "@/lib/recurring";
 import { NavTile } from "@/components/NavTile";
 import { SubmitButton } from "@/components/SubmitButton";
 import { logout } from "../actions";
@@ -16,6 +17,8 @@ export const dynamic = "force-dynamic";
 export default async function Dashboard({ params }: { params: { slug: string } }) {
   const { house, me, houseMembers } = await requireMember(params.slug);
   const byId = new Map(houseMembers.map((m) => [m.id, m]));
+  const { ym, day } = sgToday();
+  const today = `${ym}-${String(day).padStart(2, "0")}`;
 
   const [exp, setl, openShoppingItems, upcomingEvents] = await Promise.all([
     db().query.expenses.findMany({
@@ -35,7 +38,7 @@ export default async function Dashboard({ params }: { params: { slug: string } }
       columns: { id: true },
     }),
     db().query.houseEvents.findMany({
-      where: and(eq(houseEvents.houseId, house.id), eq(houseEvents.active, 1)),
+      where: and(eq(houseEvents.houseId, house.id), eq(houseEvents.active, 1), gte(houseEvents.nextDate, today)),
       orderBy: (t, { asc }) => [asc(t.nextDate)],
       limit: 3,
     }),

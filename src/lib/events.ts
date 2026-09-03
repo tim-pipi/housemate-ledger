@@ -203,7 +203,13 @@ export async function runEventScan(): Promise<{
     if (today === remindDate && e.lastRemindedOn !== today) {
       await notifyHouse(
         e.houseId,
-        renderEventReminderMessage({ title: e.title, note: e.note, recurrenceLabel, when: "tomorrow", timeLabel })
+        renderEventReminderMessage({
+          title: e.title,
+          note: e.note,
+          recurrenceLabel,
+          daysBefore: e.remindDaysBefore,
+          timeLabel,
+        })
       );
       await db().update(houseEvents).set({ lastRemindedOn: today }).where(eq(houseEvents.id, e.id));
       reminded++;
@@ -213,7 +219,7 @@ export async function runEventScan(): Promise<{
     if (e.remindDaysBefore > 0 && today === e.nextDate && e.lastRemindedOn !== today) {
       await notifyHouse(
         e.houseId,
-        renderEventReminderMessage({ title: e.title, note: e.note, recurrenceLabel, when: "today", timeLabel })
+        renderEventReminderMessage({ title: e.title, note: e.note, recurrenceLabel, daysBefore: 0, timeLabel })
       );
       await db().update(houseEvents).set({ lastRemindedOn: today }).where(eq(houseEvents.id, e.id));
       reminded++;

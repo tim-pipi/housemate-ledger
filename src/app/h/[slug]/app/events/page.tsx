@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireMember } from "@/lib/guard";
 import { sgToday } from "@/lib/recurring";
+import { fmtDate } from "@/lib/date-strings";
 import { PageHeader } from "@/components/PageHeader";
 import { buildCalendarData, type CalendarViewMode } from "./calendar-data";
 import { CalendarView } from "./calendar-view";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 function todayStr(): string {
   const { year, month, day } = sgToday();
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return fmtDate(year, month, day);
 }
 
 export default async function Events({

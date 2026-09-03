@@ -36,6 +36,7 @@ export function EventForm({
   const router = useRouter();
   const [state, formAction] = useFormState<FormState, FormData>(saveEvent, undefined);
   const [freq, setFreq] = useState<Recurrence["freq"]>(initial?.recurrence.freq ?? "none");
+  const [nextDate, setNextDate] = useState(initial?.nextDate ?? defaultDate ?? "");
   const [monthlyDay, setMonthlyDay] = useState(
     initial?.recurrence.freq === "monthly" ? initial.recurrence.day : 1
   );
@@ -43,6 +44,11 @@ export function EventForm({
     initial?.recurrence.freq === "months" ? initial.recurrence.interval : 4
   );
   const [allDay, setAllDay] = useState(!initial?.startTime);
+
+  const dayOfMonth = (dateStr: string): number | null => {
+    const match = /^\d{4}-(\d{2})-(\d{2})$/.exec(dateStr);
+    return match ? Number(match[2]) : null;
+  };
 
   return (
     <form action={formAction} className="mt-6 flex flex-col gap-4">
@@ -76,7 +82,19 @@ export function EventForm({
       <div className="grid grid-cols-2 gap-3">
         <label className="flex flex-col gap-1 text-sm font-medium">
           Date
-          <input name="nextDate" type="date" defaultValue={initial?.nextDate ?? defaultDate} required />
+          <input
+            name="nextDate"
+            type="date"
+            defaultValue={initial?.nextDate ?? defaultDate}
+            onChange={(e) => {
+              setNextDate(e.target.value);
+              if (freq === "monthly") {
+                const day = dayOfMonth(e.target.value);
+                if (day) setMonthlyDay(day);
+              }
+            }}
+            required
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           Remind days before
@@ -122,7 +140,13 @@ export function EventForm({
             <button
               key={f.key}
               type="button"
-              onClick={() => setFreq(f.key)}
+              onClick={() => {
+                setFreq(f.key);
+                if (f.key === "monthly") {
+                  const day = dayOfMonth(nextDate);
+                  if (day) setMonthlyDay(day);
+                }
+              }}
               className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
                 freq === f.key
                   ? "border-accent bg-accentsoft text-accentdark"
@@ -174,7 +198,7 @@ export function EventForm({
       {state?.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <div className="flex items-center gap-3">
-        <SubmitButton className="btn-primary" pendingLabel="Saving…">
+        <SubmitButton className="btn-primary" pendingLabel="Saving…" name="intent" value="save">
           {initial ? "Save event" : "Create event"}
         </SubmitButton>
         <button type="button" className="btn-ghost" onClick={() => router.back()}>
@@ -186,6 +210,8 @@ export function EventForm({
             formNoValidate
             className="btn-danger ml-auto"
             pendingLabel="Deleting…"
+            name="intent"
+            value="delete"
             onClick={(e) => {
               if (!confirm("Delete this event?")) e.preventDefault();
             }}

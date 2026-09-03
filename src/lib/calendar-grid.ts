@@ -80,12 +80,14 @@ export function layoutDayTimedBlocks<T extends TimedItem>(items: T[]): Positione
     }
     const columns = columnEnds.length;
     for (const item of cluster) {
+      const start = Math.min(Math.max(item.startMinutes, 0), DAY_MINUTES);
+      const end = Math.min(Math.max(item.endMinutes, start), DAY_MINUTES);
       result.push({
         item,
         column: columnByItem.get(item)!,
         columns,
-        topPercent: (item.startMinutes / DAY_MINUTES) * 100,
-        heightPercent: Math.max(((item.endMinutes - item.startMinutes) / DAY_MINUTES) * 100, 2),
+        topPercent: (start / DAY_MINUTES) * 100,
+        heightPercent: Math.max(((end - start) / DAY_MINUTES) * 100, 2),
       });
     }
   };

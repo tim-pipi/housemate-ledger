@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { expenses, expenseShares, settlements, members, shoppingItems, houseEvents } from "@/db/schema";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull } from "drizzle-orm";
 import { computeNet, simplify, type Transfer } from "@/lib/balances";
 import { fmtSGD } from "@/lib/constants";
 import { escapeHtml, appLink } from "@/lib/telegram";
@@ -57,7 +57,8 @@ export async function buildDigestMessage(house: {
   slug: string;
 }): Promise<string> {
   const { exp, sharesByExpense, setl, byId } = await loadHouseData(house.id);
-  const { ym } = sgToday();
+  const { ym, day } = sgToday();
+  const today = `${ym}-${String(day).padStart(2, "0")}`;
   const monthSpend = exp
     .filter((e) => e.date.slice(0, 7) === ym)
     .reduce((a, e) => a + e.amountCents, 0);
@@ -92,7 +93,7 @@ export async function buildDigestMessage(house: {
   }
 
   const upcoming = await db().query.houseEvents.findMany({
-    where: and(eq(houseEvents.houseId, house.id), eq(houseEvents.active, 1)),
+    where: and(eq(houseEvents.houseId, house.id), eq(houseEvents.active, 1), gte(houseEvents.nextDate, today)),
     orderBy: (t, { asc }) => [asc(t.nextDate)],
     limit: 3,
   });

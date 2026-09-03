@@ -127,10 +127,10 @@ export function renderEventReminderMessage(opts: {
   title: string;
   note: string | null;
   recurrenceLabel: string | null; // null for one-off events
-  when: "tomorrow" | "today";
+  daysBefore: number; // 0 = day-of, 1 = "Tomorrow", >1 = "In N days"
   timeLabel?: string | null;
 }): string {
-  const label = opts.when === "tomorrow" ? "Tomorrow" : "Today";
+  const label = opts.daysBefore === 0 ? "Today" : opts.daysBefore === 1 ? "Tomorrow" : `In ${opts.daysBefore} days`;
   const noteText = opts.note ? ` (${escapeHtml(opts.note)})` : "";
   const recurText = opts.recurrenceLabel ? ` — ${escapeHtml(opts.recurrenceLabel)}` : "";
   const timeText = opts.timeLabel ? `, ${escapeHtml(opts.timeLabel)}` : "";

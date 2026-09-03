@@ -75,7 +75,10 @@ export async function saveEvent(_prev: FormState, formData: FormData): Promise<F
       });
       if (!existing) throw new Error("Event not found.");
       // No notification on edit — the doc calls this out explicitly as noise.
-      await db().update(houseEvents).set(values).where(eq(houseEvents.id, eventId));
+      await db()
+        .update(houseEvents)
+        .set(values)
+        .where(and(eq(houseEvents.id, eventId), eq(houseEvents.houseId, house.id)));
     } else {
       await db()
         .insert(houseEvents)
@@ -115,5 +118,6 @@ export async function deleteEvent(formData: FormData) {
 // (Invariant 6) even though it only reads.
 export async function getCalendarData(slug: string, view: CalendarViewMode, anchorDate: string) {
   const { house } = await requireMember(slug);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(anchorDate)) throw new Error("Invalid anchor date.");
   return buildCalendarData(house.id, view, anchorDate);
 }

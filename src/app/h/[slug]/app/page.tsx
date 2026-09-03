@@ -7,12 +7,16 @@ import { computeNet, simplify } from "@/lib/balances";
 import { fmtSGD } from "@/lib/constants";
 import { formatEventDate, formatEventTime } from "@/lib/events";
 import { sgToday } from "@/lib/recurring";
+import { buildFeed } from "@/lib/activity";
 import { NavTile } from "@/components/NavTile";
 import { SubmitButton } from "@/components/SubmitButton";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import { logout } from "../actions";
 import { quickSettle } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+const DASHBOARD_FEED_LIMIT = 8;
 
 export default async function Dashboard({ params }: { params: { slug: string } }) {
   const { house, me, houseMembers } = await requireMember(params.slug);
@@ -61,12 +65,7 @@ export default async function Dashboard({ params }: { params: { slug: string } }
   );
   const transfers = simplify(net);
 
-  const feed = [
-    ...exp.map((e) => ({ kind: "expense" as const, date: e.date, id: e.id, e })),
-    ...setl.map((s) => ({ kind: "settlement" as const, date: s.date, id: s.id, s })),
-  ]
-    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id))
-    .slice(0, 25);
+  const feed = buildFeed(exp, setl);
 
   const monthSpend = exp
     .filter((e) => e.date.slice(0, 7) === new Date().toISOString().slice(0, 7))
@@ -243,57 +242,20 @@ export default async function Dashboard({ params }: { params: { slug: string } }
 
       {/* Activity */}
       <section className="mt-6">
-        <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-inkmuted">
-          Activity
-        </h2>
-        {feed.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-dashed border-line p-6 text-center text-sm text-inkmuted">
-            No expenses yet. Add the first one to start the ledger.
-          </p>
-        ) : (
-          <ul className="mt-2 space-y-2">
-            {feed.map((item) =>
-              item.kind === "expense" ? (
-                <li key={`e${item.id}`}>
-                  <Link
-                    href={`/h/${params.slug}/app/expenses/${item.id}`}
-                    className="flex items-center justify-between rounded-xl bg-white p-3.5 shadow-card transition-colors hover:bg-accentsoft/40"
-                  >
-                    <span>
-                      <span className="block font-medium">{item.e.description}</span>
-                      <span className="block text-xs text-inkmuted">
-                        {item.e.category} · {item.e.date} · paid by{" "}
-                        {byId.get(item.e.payerMemberId)?.username}
-                      </span>
-                    </span>
-                    <span className="tnum font-display font-semibold">
-                      {fmtSGD(item.e.amountCents)}
-                    </span>
-                  </Link>
-                </li>
-              ) : (
-                <li
-                  key={`s${item.id}`}
-                  className="flex items-center justify-between rounded-xl border border-line p-3.5"
-                >
-                  <span>
-                    <span className="block text-sm">
-                      {byId.get(item.s.fromMemberId)?.username} settled{" "}
-                      {byId.get(item.s.toMemberId)?.username}
-                    </span>
-                    <span className="block text-xs text-inkmuted">
-                      {item.s.date}
-                      {item.s.note ? ` · ${item.s.note}` : ""}
-                    </span>
-                  </span>
-                  <span className="tnum font-display font-semibold text-inkmuted">
-                    {fmtSGD(item.s.amountCents)}
-                  </span>
-                </li>
-              )
-            )}
-          </ul>
-        )}
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-inkmuted">
+            Activity
+          </h2>
+          {feed.length > DASHBOARD_FEED_LIMIT && (
+            <Link
+              href={`/h/${params.slug}/app/activity`}
+              className="text-xs text-accent underline-offset-2 hover:underline"
+            >
+              See all →
+            </Link>
+          )}
+        </div>
+        <ActivityFeed slug={params.slug} feed={feed.slice(0, DASHBOARD_FEED_LIMIT)} byId={byId} />
       </section>
 
       {/* Add expense FAB */}

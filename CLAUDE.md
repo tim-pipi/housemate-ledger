@@ -138,9 +138,15 @@ src/
   app/page.tsx        landing: create house
   app/actions.ts      createHouse (nanoid 12-char slug, ambiguous chars excluded)
   app/h/[slug]/       login page + loginOrJoin/logout actions
-  app/h/[slug]/app/   dashboard (balances receipt, settle suggestions, feed)
+  app/h/[slug]/app/   dashboard (balances receipt, settle suggestions, most-recent-8
+                      activity feed with a "See all" link to activity/)
     actions.ts        saveExpense / deleteExpense / settleUp / quickSettle
                       (create-expense, settleUp, quickSettle also notifyHouse())
+    activity/         full expense+settlement history, unpaginated (household scale
+                      makes pagination unnecessary) — reuses lib/activity.ts's
+                      buildFeed() and components/ActivityFeed.tsx, the same feed
+                      merge/render the dashboard uses for its capped preview, so the
+                      two never drift out of sync
     expenses/         expense-form.tsx (client, live preview) + new/edit pages
     recurring/        template list/new/edit + saveTemplate/deleteTemplate/postNow
                       (postTemplate in lib/recurring.ts also notifyHouse())

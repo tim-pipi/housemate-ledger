@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { fmtSGD } from "@/lib/constants";
-import type { FeedItem } from "@/lib/activity";
+import { fmtAdded, type FeedItem } from "@/lib/activity";
 
 export function ActivityFeed({
   slug,
@@ -35,6 +35,7 @@ export function ActivityFeed({
                 <span className="block text-xs text-inkmuted">
                   {item.e.category} · {item.e.date} · paid by {byId.get(item.e.payerMemberId)?.username}
                 </span>
+                <span className="block text-[11px] text-inkmuted/80">added {fmtAdded(item.e.createdAt)}</span>
               </span>
               <span className="tnum font-display font-semibold">{fmtSGD(item.e.amountCents)}</span>
             </Link>
@@ -49,6 +50,7 @@ export function ActivityFeed({
                 {item.s.date}
                 {item.s.note ? ` · ${item.s.note}` : ""}
               </span>
+              <span className="block text-[11px] text-inkmuted/80">added {fmtAdded(item.s.createdAt)}</span>
             </span>
             <span className="tnum font-display font-semibold text-inkmuted">{fmtSGD(item.s.amountCents)}</span>
           </li>

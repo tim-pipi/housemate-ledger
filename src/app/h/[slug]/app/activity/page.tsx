@@ -1,8 +1,6 @@
-import { db } from "@/db";
-import { expenses, settlements } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
 import { requireMember } from "@/lib/guard";
-import { buildFeed, ACTIVITY_PAGE_SIZE } from "@/lib/activity";
+import { ACTIVITY_PAGE_SIZE, DEFAULT_FEED_QUERY } from "@/lib/activity";
+import { fetchFeed } from "@/lib/activity-data";
 import { PageHeader } from "@/components/PageHeader";
 import { ActivityFeedList } from "./activity-feed-list";
 
@@ -12,20 +10,11 @@ export default async function Activity({ params }: { params: { slug: string } })
   const { house, houseMembers } = await requireMember(params.slug);
   const byId = Object.fromEntries(houseMembers.map((m) => [m.id, { username: m.username }]));
 
-  const [exp, setl] = await Promise.all([
-    db().query.expenses.findMany({
-      where: eq(expenses.houseId, house.id),
-      orderBy: [desc(expenses.date), desc(expenses.id)],
-    }),
-    db().query.settlements.findMany({
-      where: eq(settlements.houseId, house.id),
-      orderBy: [desc(settlements.date), desc(settlements.id)],
-    }),
-  ]);
-
-  const feed = buildFeed(exp, setl);
+  const feed = await fetchFeed(house.id, DEFAULT_FEED_QUERY);
   const initialItems = feed.slice(0, ACTIVITY_PAGE_SIZE);
   const initialHasMore = feed.length > ACTIVITY_PAGE_SIZE;
+  // Month filter options come from the unfiltered history, newest first.
+  const months = Array.from(new Set(feed.map((i) => i.date.slice(0, 7)))).sort().reverse();
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-24 pt-6 sm:px-6">
@@ -40,6 +29,7 @@ export default async function Activity({ params }: { params: { slug: string } })
           initialItems={initialItems}
           initialHasMore={initialHasMore}
           byId={byId}
+          months={months}
         />
       </div>
     </main>

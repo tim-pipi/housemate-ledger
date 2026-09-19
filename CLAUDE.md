@@ -316,6 +316,16 @@ vercel.json           crons: "5 16 * * *" (00:05 SGT, bills) and "0 11 * * *" (1
 - Auth-gated pages call `requireMember(params.slug)` first; it redirects to the
   house login on any mismatch.
 - `revalidatePath` after every mutation touching dashboard data.
+- **Loading/streaming:** every route under `/h/[slug]/app` has its own
+  `loading.tsx` (skeletons in `components/Skeleton.tsx`), so a tap navigates
+  instantly while the server renders — **a new route needs one too**, or
+  navigation to it blocks on the full render. Pages with data beyond
+  `requireMember` await the guard first (Invariant 6), render their header,
+  then stream the data section behind `<Suspense>` with a matching skeleton.
+  The dashboard's sections live in `dashboard-sections.tsx` and share one
+  `cache()`'d ledger fetch. No `loading.tsx` on `/h/[slug]` (login) on
+  purpose: it redirects logged-in users to `/app`, and streaming a fallback
+  first would turn that fast HTTP redirect into a slower client-side one.
 - UI tokens live in `tailwind.config.ts` (paper/ink/accent teal palette) —
   reuse them; don't introduce ad-hoc hex values. `.tnum` class for any number
   column (tabular numerals). `fmtSGD()` for all money display.

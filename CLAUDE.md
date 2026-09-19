@@ -87,9 +87,24 @@ A full PRD exists (v1.0, approved) — summary of its resolved decisions:
   tab. Accepted deliberately rather than plumbing a count into the nav bar
   (would require crossing the server/client boundary non-trivially) — revisit
   if the household finds this a real gap in practice.
+- **Activity sort + filters** (the `/activity` page and dashboard preview).
+  The feed now defaults to **recently added** (`created_at` desc) instead of
+  the user-entered expense `date`, so a backdated expense surfaces when it's
+  entered; the dashboard's 8-item preview follows the same default. The
+  Activity page has a sort control (Recently added / Expense date / Amount
+  high→low / Amount low→high) and AND-combined filters: type
+  (All/Expenses/Settlements), person, category, month. **Person = payer for
+  expenses, from/to for settlements** — deliberately *not* "has a share",
+  which would need `expense_shares` loaded into the feed; revisit if the
+  house wants "involved in". Category is expenses-only, so it hides
+  settlements (and is disabled in a settlements-only view). Month matches the
+  item's own `date`, not `created_at`. Each row shows an "added 19 Sep, 14:32"
+  stamp (SGT) so the default order isn't confusing next to the visible date.
+  Filter state is client-side only, not persisted in the URL. No schema
+  change. This covers the feed-filter part of M5; monthly summary and CSV
+  export are still open.
 - **Deployed and in use** on Vercel + Supabase by the owner.
-- **Not built yet (M5):** CSV export, monthly summary view, filters
-  (month/category/person). Also v1.1 ideas still open: receipt photo upload,
+- **Not built yet (M5):** CSV export, monthly summary view. Also v1.1 ideas still open: receipt photo upload,
   spend charts, saved split presets, link regeneration + house password (the
   planned response if the house link ever leaks), and the "log shopping item
   as expense" stretch goal from `docs/newfeature.md`.
@@ -149,6 +164,16 @@ src/
                       — pure month/week grid + timed-block layout math, no DB,
                       no knowledge of house_events; safe to import from client
                       components (unlike lib/events.ts)
+  lib/activity.ts     FeedItem/FeedQuery types, buildFeed(exp, setl, sort),
+                      applyFeedQuery() (AND filters + sort), parseFeedQuery()
+                      (coerces untrusted client input, never throws), fmtAdded()
+                      (SGT "19 Sep, 14:32" from numeric parts so server/browser
+                      hydrate identically). Pure, no DB — unit-tested in
+                      activity.test.ts
+  lib/activity-data.ts fetchFeed(houseId, query) — the one place that loads a
+                      house's expenses+settlements and derives the feed; shared
+                      by activity/page.tsx and loadMoreActivity. Server-only
+                      (imports db), which is why it isn't in lib/activity.ts
   lib/constants.ts    categories, member color palette, fmtSGD()
   app/page.tsx        landing: create house
   app/actions.ts      createHouse (nanoid 12-char slug, ambiguous chars excluded)
@@ -161,15 +186,21 @@ src/
                       activity feed with a "See all" link to activity/)
     actions.ts        saveExpense / deleteExpense / settleUp / quickSettle
                       (create-expense, settleUp, quickSettle also notifyHouse())
-    activity/         full expense+settlement history, "Load more" paginated
-                      (activity-feed-list.tsx, client) in lib/activity.ts's
-                      ACTIVITY_PAGE_SIZE (20) increments via loadMoreActivity —
-                      re-fetches all house expenses/settlements and re-slices
-                      the merged feed by offset each call rather than a DB-level
-                      cursor (cheap at household scale, same "fetch everything,
-                      derive in memory" approach as balances, Invariant 4;
-                      avoids cursor logic across two unioned tables ordered by
-                      (date, id) desc). Reuses lib/activity.ts's buildFeed() and
+    activity/         full expense+settlement history with sort/filter controls
+                      and "Load more" pagination (activity-feed-list.tsx,
+                      client) in lib/activity.ts's ACTIVITY_PAGE_SIZE (20)
+                      increments via loadMoreActivity(slug, offset, query).
+                      The same action serves "Load more" (offset = items
+                      shown) and a sort/filter change (offset 0, replaces the
+                      list); the query is re-validated by parseFeedQuery on
+                      every call. It re-fetches all house expenses/settlements,
+                      filters, sorts and slices by offset each call rather than
+                      a DB-level cursor (cheap at household scale, same "fetch
+                      everything, derive in memory" approach as balances,
+                      Invariant 4; avoids cursor logic across two unioned
+                      tables with user-selectable order). The client discards
+                      responses for a superseded query (request counter ref).
+                      Reuses lib/activity.ts's buildFeed() and
                       components/ActivityFeed.tsx, the same feed merge/render
                       the dashboard uses for its capped preview, so the two
                       never drift out of sync
@@ -299,6 +330,7 @@ vercel.json           crons: "5 16 * * *" (00:05 SGT, bills) and "0 11 * * *" (1
 
 ```bash
 npm run dev           # local dev
+npm run test          # vitest run (vitest.config.mts; tests live beside code as *.test.ts)
 npm run build         # must pass with no DATABASE_URL set (only SESSION_SECRET)
 npm run db:generate   # regenerate SQL after editing src/db/schema.ts
 npm run db:migrate    # apply migrations (needs DATABASE_URL)
@@ -331,18 +363,25 @@ new file in `drizzle/` → run `db:migrate` against prod → deploy.
   reference them, so `/h/[slug]/app/members` only supports soft-delete via
   the `active` flag (`toggleMemberActive`). Deactivated members are hidden
   from new expenses but their history and balances remain.
-- No tests are wired into CI yet; split/balance math was verified with ad-hoc
-  tsx scripts. **Good first task: turn those into real vitest tests for
-  `lib/split.ts`, `lib/balances.ts`, `lib/recurring.ts`** — they're pure
-  functions and the highest-stakes code in the app.
+- vitest is set up (`npm run test`) but so far only `lib/activity.ts` has
+  tests (`activity.test.ts`); nothing runs them in CI yet. Split/balance math
+  was verified with ad-hoc tsx scripts. **Good next task: turn those into real
+  vitest tests for `lib/split.ts`, `lib/balances.ts`, `lib/recurring.ts`** —
+  they're pure functions and the highest-stakes code in the app. Use
+  `vitest.config.mts` (not `.ts`): the package is CommonJS, and a `.ts` config
+  with ESM syntax makes Vite print a loader warning.
+- The dashboard's "this month" spend total compares against
+  `new Date().toISOString()` (UTC month), not SGT — it can be wrong for a few
+  hours around month boundaries. Not fixed yet; violates Invariant 8's spirit.
 - `quickSettle` (the "Mark paid" button) records settlement dated today with a
   fixed note; the fuller `settleUp` action exists for arbitrary settlements but
   has no dedicated UI yet — dashboard suggestions cover the common case.
 
 ## Roadmap (agreed with owner)
 
-1. **M5:** monthly summary (total + by category + per person), filters
-   (month/category/person) on the feed, CSV export of any filtered view.
+1. **M5:** monthly summary (total + by category + per person), CSV export of
+   any filtered view (feed filters are done — `applyFeedQuery` in
+   `lib/activity.ts` is the natural base for the export).
 2. **v1.1 candidates remaining (unprioritized):** receipt photo upload, spend
    charts, saved split presets, house-link regeneration + optional house
    password, "log shopping item as expense" stretch. (Telegram notifications,

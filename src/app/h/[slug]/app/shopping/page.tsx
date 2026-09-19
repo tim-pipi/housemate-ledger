@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { db } from "@/db";
 import { shoppingItems } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { requireMember } from "@/lib/guard";
 import { Card } from "@/components/Card";
 import { PageHeader } from "@/components/PageHeader";
+import { ShoppingListSkeleton } from "@/components/Skeleton";
 import { SubmitButton } from "@/components/SubmitButton";
 import { buyItem, untickItem, clearBought } from "./actions";
 import { ShoppingAddForm } from "./shopping-add-form";
@@ -12,17 +14,6 @@ export const dynamic = "force-dynamic";
 
 export default async function ShoppingPage({ params }: { params: { slug: string } }) {
   const { house, houseMembers } = await requireMember(params.slug);
-  const byId = new Map(houseMembers.map((m) => [m.id, m]));
-
-  const items = await db().query.shoppingItems.findMany({
-    where: and(eq(shoppingItems.houseId, house.id), isNull(shoppingItems.archivedAt)),
-    orderBy: (t, { asc }) => [asc(t.createdAt)],
-  });
-
-  const open = items.filter((i) => !i.boughtAt);
-  const bought = [...items.filter((i) => i.boughtAt)].sort((a, b) =>
-    (a.boughtAt as Date) < (b.boughtAt as Date) ? 1 : -1
-  );
 
   return (
     <main className="mx-auto max-w-2xl px-4 pb-24 pt-6 sm:px-6">
@@ -32,8 +23,39 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
         description="Add what the house needs. Tick an item off once it's bought — bought items stay visible below so nobody double-buys."
       />
 
+      {/* The add form is usable immediately; the list streams in below it. */}
       <ShoppingAddForm slug={params.slug} />
 
+      <Suspense fallback={<ShoppingListSkeleton />}>
+        <ShoppingLists slug={params.slug} houseId={house.id} houseMembers={houseMembers} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function ShoppingLists({
+  slug,
+  houseId,
+  houseMembers,
+}: {
+  slug: string;
+  houseId: number;
+  houseMembers: { id: number; username: string }[];
+}) {
+  const byId = new Map(houseMembers.map((m) => [m.id, m]));
+
+  const items = await db().query.shoppingItems.findMany({
+    where: and(eq(shoppingItems.houseId, houseId), isNull(shoppingItems.archivedAt)),
+    orderBy: (t, { asc }) => [asc(t.createdAt)],
+  });
+
+  const open = items.filter((i) => !i.boughtAt);
+  const bought = [...items.filter((i) => i.boughtAt)].sort((a, b) =>
+    (a.boughtAt as Date) < (b.boughtAt as Date) ? 1 : -1
+  );
+
+  return (
+    <>
       <section className="mt-6">
         <h2 className="font-display text-sm font-semibold uppercase tracking-wider text-inkmuted">
           Needed{open.length > 0 ? ` (${open.length})` : ""}
@@ -47,7 +69,7 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
             {open.map((item) => (
               <Card as="li" key={item.id} className="flex items-center gap-3">
                 <form action={buyItem}>
-                  <input type="hidden" name="slug" value={params.slug} />
+                  <input type="hidden" name="slug" value={slug} />
                   <input type="hidden" name="itemId" value={item.id} />
                   <SubmitButton
                     className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-line transition-colors hover:border-accent"
@@ -76,7 +98,7 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
               Bought ({bought.length})
             </h2>
             <form action={clearBought}>
-              <input type="hidden" name="slug" value={params.slug} />
+              <input type="hidden" name="slug" value={slug} />
               <SubmitButton className="btn-ghost px-3 py-1 text-xs" pendingLabel="Clearing…">
                 Clear bought
               </SubmitButton>
@@ -86,7 +108,7 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
             {bought.map((item) => (
               <Card as="li" key={item.id} muted flat className="flex items-center gap-3">
                 <form action={untickItem}>
-                  <input type="hidden" name="slug" value={params.slug} />
+                  <input type="hidden" name="slug" value={slug} />
                   <input type="hidden" name="itemId" value={item.id} />
                   <SubmitButton
                     className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent text-xs text-white"
@@ -111,6 +133,6 @@ export default async function ShoppingPage({ params }: { params: { slug: string 
           </ul>
         </section>
       )}
-    </main>
+    </>
   );
 }

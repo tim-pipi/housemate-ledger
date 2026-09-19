@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { requireMember } from "@/lib/guard";
 import { sgToday } from "@/lib/recurring";
 import { fmtDate } from "@/lib/date-strings";
 import { PageHeader } from "@/components/PageHeader";
+import { CalendarSkeleton } from "@/components/Skeleton";
 import { buildCalendarData, type CalendarViewMode } from "./calendar-data";
 import { CalendarView } from "./calendar-view";
 
@@ -28,8 +30,6 @@ export default async function Events({
       ? searchParams.date
       : todayStr();
 
-  const data = await buildCalendarData(house.id, view, anchorDate);
-
   return (
     <main className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6">
       <PageHeader
@@ -43,8 +43,25 @@ export default async function Events({
         description="Reminders for things that happen in the real world — paying the landlord, booking servicing, house dinners. Separate from the ledger's auto-posted recurring bills."
       />
       <div className="mt-4">
-        <CalendarView slug={params.slug} initialData={data} />
+        <Suspense fallback={<CalendarSkeleton />}>
+          <CalendarSection slug={params.slug} houseId={house.id} view={view} anchorDate={anchorDate} />
+        </Suspense>
       </div>
     </main>
   );
+}
+
+async function CalendarSection({
+  slug,
+  houseId,
+  view,
+  anchorDate,
+}: {
+  slug: string;
+  houseId: number;
+  view: CalendarViewMode;
+  anchorDate: string;
+}) {
+  const data = await buildCalendarData(houseId, view, anchorDate);
+  return <CalendarView slug={slug} initialData={data} />;
 }

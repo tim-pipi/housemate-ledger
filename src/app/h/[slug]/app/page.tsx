@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireMember } from "@/lib/guard";
 import { SubmitButton } from "@/components/SubmitButton";
 import { BalancesSkeleton, DashboardActivitySkeleton } from "@/components/Skeleton";
+import { KampungMark } from "@/components/KampungArt";
 import { logout } from "../actions";
 import { ActivitySection, BalancesSection, UpcomingSection } from "./dashboard-sections";
 
@@ -17,8 +18,9 @@ export default async function Dashboard({ params }: { params: { slug: string } }
     <main className="mx-auto max-w-2xl px-4 pb-36 pt-6 sm:px-6">
       <header className="flex items-center justify-between">
         <div>
-          <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-accent">
-            Housemate Ledger
+          <p className="flex items-center gap-1.5 font-display text-xs font-semibold uppercase tracking-[0.2em] text-accent">
+            <KampungMark className="h-3.5 w-3.5" />
+            Kampung
           </p>
           <h1 className="font-display text-2xl font-bold">{house.name}</h1>
         </div>

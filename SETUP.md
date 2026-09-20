@@ -31,8 +31,8 @@ recurring_templates). You only re-run this when the schema changes.
 Create a repo and push:
 
 ```bash
-git init && git add -A && git commit -m "Housemate Ledger M1+M2"
-git remote add origin git@github.com:<you>/housemate-ledger.git
+git init && git add -A && git commit -m "Kampung M1+M2"
+git remote add origin git@github.com:<you>/kampung.git
 git push -u origin main
 ```
 

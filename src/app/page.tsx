@@ -1,13 +1,15 @@
 import { createHouse } from "./actions";
 import { SubmitButton } from "@/components/SubmitButton";
+import { KampungSkyline } from "@/components/KampungArt";
 
 export const dynamic = "force-dynamic";
 
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
+    <>
+    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 pb-44 pt-16 sm:pb-72">
       <p className="font-display text-sm font-semibold uppercase tracking-[0.2em] text-accent">
-        Housemate Ledger
+        Kampung
       </p>
       <h1 className="mt-3 font-display text-4xl font-bold leading-tight">
         One link for the whole flat.
@@ -29,5 +31,12 @@ export default function Home() {
         Anyone with the link can join. Keep it within your household.
       </p>
     </main>
+    {/* Decorative horizon, pinned to the bottom of the viewport and behind the
+        content. min-w keeps the scene from shrinking to a thin strip on a
+        phone; the wrapper centers and crops it instead. */}
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 -z-10 flex justify-center overflow-hidden">
+      <KampungSkyline className="h-auto min-w-[680px] max-w-[1400px]" />
+    </div>
+    </>
   );
 }

@@ -109,9 +109,11 @@ A full PRD exists (v1.0, approved) — summary of its resolved decisions:
   household, not the feature. Only the product name changed: "housemates" as
   a plain noun is still correct and was left alone, as were the PRD and the
   `docs/*.md` design docs (historical records, same treatment as
-  `docs/newfeature.md`). The GitHub repo (`tim-pipi/housemate-ledger`), the
-  local folder and the Vercel project were **not** renamed — so `SETUP.md`'s
-  remote URL is right as written. Shipped with it: `components/KampungArt.tsx`
+  `docs/newfeature.md`). The GitHub repo was renamed to `tim-pipi/kampung`
+  (GitHub redirects the old URL, so any stale clone keeps working). The local
+  folder is still `housemate-finance` and the Vercel project and Telegram bot
+  names are unchanged — cosmetic only, rename them if they start to grate.
+  Shipped with it: `components/KampungArt.tsx`
   (see code map) and a faint rattan-weave texture on `body::before` in
   `globals.css`, applied globally — scope it to the landing/login pages if it
   ever reads as noise on the data-dense screens.

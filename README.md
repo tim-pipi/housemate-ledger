@@ -1,4 +1,4 @@
-# Housemate Ledger
+# Kampung
 
 Track shared expenses, split bills Splitwise-style, and settle up — one when2meet-style
 link per house, no accounts or emails.

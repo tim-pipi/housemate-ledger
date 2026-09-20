@@ -10,6 +10,18 @@ body {
   @apply bg-paper text-ink font-body antialiased;
 }
 
+/* Barely-there rattan weave over the paper background. Inlined as a data URI
+   so it costs no request and survives an offline build, same reasoning as the
+   fonts <link> decision in layout.tsx. Opacity is baked into the tile. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -20;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='%231C2B35' stroke-opacity='0.055' stroke-width='1.5'%3E%3Cpath d='M0 6h12M12 18h12'/%3E%3Cpath d='M6 12v12M18 0v12'/%3E%3C/g%3E%3C/svg%3E");
+}
+
 .tnum {
   font-variant-numeric: tabular-nums;
 }

@@ -1,4 +1,4 @@
-# CLAUDE.md — Housemate Ledger
+# CLAUDE.md — Kampung
 
 Context handoff for Claude Code. This file captures what the project is, every
 decision made so far, and — most importantly — *why*, so you can extend the code
@@ -103,6 +103,18 @@ A full PRD exists (v1.0, approved) — summary of its resolved decisions:
   Filter state is client-side only, not persisted in the URL. No schema
   change. This covers the feed-filter part of M5; monthly summary and CSV
   export are still open.
+- **Renamed "Housemate Ledger" → "Kampung"** (bare wordmark, no tagline). The
+  app had outgrown a money-only name — it carries shopping, calendar and
+  activity as well as the ledger — so the name deliberately describes the
+  household, not the feature. Only the product name changed: "housemates" as
+  a plain noun is still correct and was left alone, as were the PRD and the
+  `docs/*.md` design docs (historical records, same treatment as
+  `docs/newfeature.md`). The GitHub repo (`tim-pipi/housemate-ledger`), the
+  local folder and the Vercel project were **not** renamed — so `SETUP.md`'s
+  remote URL is right as written. Shipped with it: `components/KampungArt.tsx`
+  (see code map) and a faint rattan-weave texture on `body::before` in
+  `globals.css`, applied globally — scope it to the landing/login pages if it
+  ever reads as noise on the data-dense screens.
 - **Deployed and in use** on Vercel + Supabase by the owner.
 - **Not built yet (M5):** CSV export, monthly summary view. Also v1.1 ideas still open: receipt photo upload,
   spend charts, saved split presets, link regeneration + house password (the
@@ -175,6 +187,13 @@ src/
                       by activity/page.tsx and loadMoreActivity. Server-only
                       (imports db), which is why it isn't in lib/activity.ts
   lib/constants.ts    categories, member color palette, fmtSGD()
+  components/KampungArt.tsx  hand-authored decorative SVG: KampungSkyline (attap
+                      roofs → coconut palm → HDB slabs, used bottom-pinned on the
+                      landing + house-login pages) and KampungMark (house glyph in
+                      the dashboard header lockup, mirrored by app/icon.svg —
+                      keep the two shapes in sync). Colors via fill-accent/
+                      fill-accentsoft/fill-paper tokens, never literal hex; all
+                      exports aria-hidden (purely decorative, zero client JS)
   app/page.tsx        landing: create house
   app/actions.ts      createHouse (nanoid 12-char slug, ambiguous chars excluded)
   app/h/[slug]/       login page + loginOrJoin/logout actions

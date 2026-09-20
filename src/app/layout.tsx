@@ -5,7 +5,7 @@ import "./fonts.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Housemate Ledger",
+  title: "Kampung",
   description: "Track shared expenses, split bills, settle up.",
 };
 
